@@ -30,7 +30,7 @@ cargo build --release
 ## Start mining
 Install the miner which represents 3D object generator (you can use your own modified miner instead). Set up the `port 9833` for the objects to send and run the miner like this:
 ```
-yarn miner --interval 10 --port 9833
+pnpm miner --interval 10 --port 9833
 ```
 
 
