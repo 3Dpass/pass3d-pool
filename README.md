@@ -28,9 +28,9 @@ cargo build --release
 ./target/release/pass3d-pool --help
 ```
 ## Start mining
-Install the official miner according to [3DPass Node](https://github.com/3Dpass/3DP) tutorial. You can also use your own modified miner instead. Set up the `port 9833` for the objects to send and run the miner like this:
+Install the [official miner](https://github.com/3Dpass/miner). You can also use your own modified miner instead. Set up the `port 9833` for the objects to send and run the miner like this:
 ```
-pnpm miner --interval 10 --port 9833
+yarn miner --interval 10 --port 9833
 ```
 
 
