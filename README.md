@@ -4,7 +4,9 @@ This stand alone application represents a client for the  [3DPass Node](https://
 
 In order to prove of the miner's work there is an additional off-chain difficulty number being leveraged by the client app and verified on the pool Node's side. The additional difficulty is set up by the pool's admin. Every 10 sec the client app is requesting the pool Node for some necessary metadata, such as:
 
-- Additional difficulty number
+- Pub key for the client authorizaton and objects encyption
+- Current network difficultty
+- Additional off-cahin difficulty
 - Best block hash
 - Parent block hash
 
@@ -21,7 +23,7 @@ cargo build --release
 ```
 ## Run
 ```
-./target/release/pass3d-pool --algo grid2d_v3 --pool-id <POOL ADDRESS> --member-id <MINER'S ADDRESS> --url http://1.2.3.4:9933
+./target/release/pass3d-pool --algo grid2d_v2 --pool-id <POOL ADDRESS> --member-id <MINER'S ADDRESS> --url http://1.2.3.4:9933
 ```
 ### Parameters
 ```
