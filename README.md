@@ -2,7 +2,7 @@
 ## Mining client for the pool Node
 This stand alone application represents a client for the  [3DPass Node](https://github.com/3Dpass/3DP) running on the mining pool mode. The mining pool mode, while being turned on, enables the decentralized mining pool pallet, which will distribute mining block rewards directly among the mining pool's members and charge the mining pool fee that is set up by the pool's admin.
 
-In order to prove of the miner's work there is an additional off-chain difficulty number being leveraged by the client app and verified on the pool Node's side. The additional difficulty is set up by the pool's admin. Every 10 sec the client app is requesting the pool Node for some necessary metadata, such as:
+In order to prove of the miner's work there is an additional off-chain difficulty number being leveraged by the client app and verified on the pool Node's side. The additional difficulty is set up by the pool's admin. Every 10 sec the client app is requesting the pool Node (via the [RPC API](https://github.com/3Dpass/3DP/wiki/RPC-API-mining-pool-interaction)) for some necessary metadata, such as:
 
 - Pub key for the client authorizaton and objects encyption
 - Current network difficultty
