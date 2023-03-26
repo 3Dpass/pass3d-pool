@@ -71,6 +71,7 @@ pub(crate) fn worker(ctx: &MiningContext) {
                 parent_hash,
                 win_dfclty,
                 pow_dfclty,
+                ..
             } = mining_params;
             let pre = parent_hash.encode()[0..4].try_into().ok();
 
@@ -87,7 +88,11 @@ pub(crate) fn worker(ctx: &MiningContext) {
 
             let poscan_hash = DoubleHash { pre_hash, obj_hash }.calc_hash();
 
-            let comp = Compute {difficulty: pow_dfclty, pre_hash,  poscan_hash };
+            let comp = Compute {
+                difficulty: pow_dfclty,
+                pre_hash,
+                poscan_hash,
+            };
 
             if hash_meets_difficulty(&comp.get_work(), pow_dfclty) {
                 let prop = MiningProposal {
@@ -99,7 +104,11 @@ pub(crate) fn worker(ctx: &MiningContext) {
                 ctx.push_to_queue(prop);
             }
 
-            let comp = Compute {difficulty: win_dfclty, pre_hash,  poscan_hash };
+            let comp = Compute {
+                difficulty: win_dfclty,
+                pre_hash,
+                poscan_hash,
+            };
 
             if hash_meets_difficulty(&comp.get_work(), win_dfclty) {
                 let prop = MiningProposal {
@@ -110,7 +119,6 @@ pub(crate) fn worker(ctx: &MiningContext) {
                 };
                 ctx.push_to_queue(prop);
             }
-
         } else {
             thread::sleep(Duration::from_millis(100))
         }
@@ -125,7 +133,10 @@ pub(crate) async fn node_client(ctx: Arc<MiningContext>) {
             maybe_prop
         };
         if let Some(prop) = maybe_prop {
-            let _res = ctx.push_to_node(prop).await;
+            let res = ctx.push_to_node(prop).await;
+            if let Err(e) = res {
+                println!("Error: {}", &e);
+            }
         } else {
             tokio::time::sleep(Duration::from_millis(100)).await;
         }

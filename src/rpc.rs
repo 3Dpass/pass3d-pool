@@ -5,6 +5,7 @@ use std::sync::{Arc, Mutex};
 
 use codec::Encode;
 
+use ecies_ed25519::encrypt;
 use jsonrpsee::core::client::ClientT;
 use jsonrpsee::core::{Error, JsonValue};
 use jsonrpsee::http_client::{HttpClient, HttpClientBuilder};
@@ -12,6 +13,8 @@ use jsonrpsee::server::ServerBuilder;
 use jsonrpsee::types::Params;
 use jsonrpsee::{rpc_params, RpcModule};
 use primitive_types::{H256, U256};
+use rand::{rngs::StdRng, SeedableRng};
+use serde::Serialize;
 
 const LISTEN_ADDR: &'static str = "127.0.0.1:9833";
 
@@ -21,6 +24,7 @@ pub(crate) struct MiningParams {
     pub(crate) parent_hash: H256,
     pub(crate) win_dfclty: U256,
     pub(crate) pow_dfclty: U256,
+    pub(crate) pub_key: ecies_ed25519::PublicKey,
 }
 
 #[derive(Clone, Encode)]
@@ -82,6 +86,19 @@ pub(crate) struct MiningProposal {
     pub(crate) hash: H256,
     pub(crate) obj_id: u64,
     pub(crate) obj: Vec<u8>,
+}
+
+#[derive(Serialize)]
+pub(crate) struct Payload {
+    pub(crate) pool_id:     String,
+    pub(crate) member_id:   String,
+    pub(crate) pre_hash:    H256,
+    pub(crate) parent_hash: H256,
+    pub(crate) algo:        String,
+    pub(crate) dfclty:      U256,
+    pub(crate) hash:        H256,
+    pub(crate) obj_id:      u64,
+    pub(crate) obj:         Vec<u8>,
 }
 
 pub(crate) struct MiningContext {
@@ -150,13 +167,25 @@ impl MiningContext {
         let parent_hash: Option<&str> = response.get(1).expect("Expect parent_hash").as_str();
         let win_dfclty: Option<&str> = response.get(2).expect("Expect win_difficulty").as_str();
         let pow_dfclty: Option<&str> = response.get(3).expect("Expect pow_difficulty").as_str();
+        let pub_key: Option<&str> = response.get(4).expect("public key").as_str();
 
-        match (pre_hash, parent_hash, win_dfclty, pow_dfclty) {
-            (Some(pre_hash), Some(parent_hash), Some(win_dfclty), Some(pow_dfclty)) => {
+        match (pre_hash, parent_hash, win_dfclty, pow_dfclty, pub_key) {
+            (
+                Some(pre_hash),
+                Some(parent_hash),
+                Some(win_dfclty),
+                Some(pow_dfclty),
+                Some(pub_key),
+            ) => {
                 let pre_hash = H256::from_str(&pre_hash).unwrap();
                 let parent_hash = H256::from_str(&parent_hash).unwrap();
                 let win_dfclty = U256::from_str_radix(&win_dfclty, 16).unwrap();
                 let pow_dfclty = U256::from_str_radix(&pow_dfclty, 16).unwrap();
+                let pub_key = U256::from_str_radix(&pub_key, 16).unwrap();
+                let mut pub_key = pub_key.encode();
+                pub_key.reverse();
+                println!("key:{}", hex::encode(&pub_key));
+                let pub_key = ecies_ed25519::PublicKey::from_bytes(&pub_key).unwrap();
 
                 let mut lock = self.cur_state.lock().unwrap();
                 (*lock) = Some(MiningParams {
@@ -164,6 +193,7 @@ impl MiningContext {
                     parent_hash,
                     pow_dfclty,
                     win_dfclty,
+                    pub_key,
                 });
                 println!("Mining params applied");
             }
@@ -177,19 +207,22 @@ impl MiningContext {
     pub(crate) async fn push_to_node(&self, proposal: MiningProposal) -> anyhow::Result<()> {
         println!("Pushing obj to node...");
 
-        let params = rpc_params![
-            serde_json::json!(self.pool_id),
-            serde_json::json!(self.member_id),
-            serde_json::json!(proposal.params.pre_hash),
-            serde_json::json!(proposal.params.parent_hash),
-            serde_json::json!(self.p3d_params.algo.as_str()),
-            serde_json::json!(proposal.params.pow_dfclty),
-            // TODO: sign hash
-            serde_json::json!(proposal.hash),
-            serde_json::json!(proposal.hash),
-            serde_json::json!(proposal.obj_id),
-            serde_json::json!(proposal.obj)
-        ];
+        let payload = Payload {
+            pool_id:     self.pool_id.clone(),
+            member_id:   self.member_id.clone(),
+            pre_hash:    proposal.params.pre_hash,
+            parent_hash: proposal.params.parent_hash,
+            algo:        self.p3d_params.algo.as_str().into(),
+            dfclty:      proposal.params.pow_dfclty,
+            hash:        proposal.hash,
+            obj_id:      proposal.obj_id,
+            obj:         proposal.obj,
+        };
+
+        let message = serde_json::to_string(&payload).unwrap();
+        let mut csprng = StdRng::from_seed(proposal.hash.encode().try_into().unwrap());
+        let encrypted = encrypt(&proposal.params.pub_key, message.as_bytes(), &mut csprng).unwrap();
+        let params = rpc_params![serde_json::json!(encrypted.clone())];
 
         let _response: JsonValue = self
             .client

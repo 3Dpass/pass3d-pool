@@ -1,6 +1,6 @@
 [package]
 name = "pass3d-pool"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["3Dpass"]
 edition = "2021"
 
@@ -17,5 +17,9 @@ tokio = {version = "1.25", features = ["macros", "rt-multi-thread"], default-fea
 jsonrpsee = { version = "0.16", features = ["server", "client"] }
 codec = { package = "parity-scale-codec", version = "3.1", default-features = false, features = ["derive"] }
 primitive-types = { version = "0.11", default-features = false, features = ["serde"] }
+ecies-ed25519 = { version = "0.5" }
+rand = "0.7.3"
+hex = "0.4"
+ed25519_to_curve25519 = "0.2"
 
 p3d = { version="0.3.3", git = "https://github.com/3Dpass/p3d", tag = "v0.6.3" }
