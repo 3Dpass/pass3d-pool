@@ -23,7 +23,7 @@ cargo build --release
 ```
 ## Run
 ```
-./target/release/pass3d-pool --algo grid2d_v2 --pool-id <POOL ADDRESS> --member-id <MINER'S ADDRESS> --url http://1.2.3.4:9933
+./target/release/pass3d-pool --algo grid2d_v2 --pool-id <POOL ADDRESS> --member-id <MINER'S ADDRESS> --url http://1.2.3.4:9933 --threads 32
 ```
 ### Parameters
 ```
