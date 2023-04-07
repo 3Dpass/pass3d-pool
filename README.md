@@ -4,7 +4,7 @@ This stand alone application represents a client for the  [3DPass Node](https://
 
 In order to prove of the miner's work there is an additional off-chain difficulty number being leveraged by the client app and verified on the pool Node's side. The additional difficulty is set up by the pool's admin. Every 10 sec the client app is requesting the pool Node (via the [RPC API](https://github.com/3Dpass/3DP/wiki/RPC-API-mining-pool-interaction)) for some necessary metadata, such as:
 
-- Pub key for the client authorizaton and objects encyption
+- Pub key for the client authorizaton and objects encryption
 - Current network difficultty
 - Additional off-cahin difficulty
 - Best block hash
@@ -23,7 +23,7 @@ cargo build --release
 ```
 ## Run
 ```
-./target/release/pass3d-pool --algo grid2d_v2 --pool-id <POOL ADDRESS> --member-id <MINER'S ADDRESS> --url http://1.2.3.4:9933 --threads 32
+./target/release/pass3d-pool --algo grid2d_v2 --pool-id <POOL P3D ADDRESS> --member-id <MINER'S P3D ADDRESS> --url http://1.2.3.4:9933 --threads 32
 ```
 ### Parameters
 ```
@@ -32,7 +32,7 @@ cargo build --release
 ## Start mining
 Install the [official miner](https://github.com/3Dpass/miner). You can also use your own modified miner instead. Set up the `port 9833` for the objects to send and run the miner like this:
 ```
-yarn miner --interval 10 --port 9833
+yarn miner --interval 10 --port 9833 --threads 32
 ```
 
 
