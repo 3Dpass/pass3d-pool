@@ -60,12 +60,12 @@ jobs:
         shell: bash
         run: |
           cd target/release
-          tar czvf ../../../pass3d-pool-${{ matrix.name }}.tar.gz pass3d-pool${{ matrix.suffix }}
+          tar czvf ../../pass3d-pool-${{ matrix.name }}.tar.gz pass3d-pool${{ matrix.suffix }}
           cd -
 
       - name: Publish
         uses: softprops/action-gh-release@v1
         with:
-          files: "target/release/pass3d-pool-*"
+          files: "pass3d-pool-*"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
