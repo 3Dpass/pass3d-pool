@@ -66,6 +66,6 @@ jobs:
       - name: Publish
         uses: softprops/action-gh-release@v1
         with:
-          files: "pass3d-pool-*"
+          files: "target/release/pass3d-pool-*"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
