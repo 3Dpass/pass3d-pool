@@ -1,11 +1,10 @@
 name: Release CI
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*.*.*"
-#    branches:
-#      - "test-ci"
 
 jobs:
   build:
