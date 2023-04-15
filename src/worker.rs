@@ -149,7 +149,10 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
 
         loop {
             interval.tick().await;
-            let _res = ctx.ask_mining_params().await;
+            let res = ctx.ask_mining_params().await;
+            if let Err(e) = res {
+                println!("Ask mining params error: {}", &e);
+            }
         }
     });
 }
