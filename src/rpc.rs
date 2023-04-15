@@ -15,6 +15,7 @@ use jsonrpsee::{rpc_params, RpcModule};
 use primitive_types::{H256, U256};
 use rand::{rngs::StdRng, SeedableRng};
 use serde::Serialize;
+use schnorrkel::{SecretKey, MiniSecretKey, ExpansionMode, Signature};
 
 const LISTEN_ADDR: &'static str = "127.0.0.1:9833";
 
@@ -105,6 +106,7 @@ pub(crate) struct MiningContext {
     pub(crate) p3d_params: P3dParams,
     pub(crate) pool_id: String,
     pub(crate) member_id: String,
+    pub(crate) key: SecretKey,
     pub(crate) cur_state: Mutex<Option<MiningParams>>,
     pub(crate) in_queue: Mutex<VecDeque<MiningObj>>,
     pub(crate) out_queue: Mutex<VecDeque<MiningProposal>>,
@@ -118,11 +120,20 @@ impl MiningContext {
         pool_addr: &str,
         pool_id: String,
         member_id: String,
+        key: String,
     ) -> anyhow::Result<Self> {
+
+        let key = key.replacen("0x", "", 1);
+        let key_data = hex::decode(&key[..])?;
+        let key = MiniSecretKey::from_bytes(&key_data[..])
+            .expect("Invalid key")
+            .expand(ExpansionMode::Ed25519);
+
         Ok(MiningContext {
             p3d_params,
             pool_id,
             member_id,
+            key,
             cur_state: Mutex::new(None),
             in_queue: Mutex::new(VecDeque::new()),
             out_queue: Mutex::new(VecDeque::new()),
@@ -184,7 +195,6 @@ impl MiningContext {
                 let pub_key = U256::from_str_radix(&pub_key, 16).unwrap();
                 let mut pub_key = pub_key.encode();
                 pub_key.reverse();
-                println!("key:{}", hex::encode(&pub_key));
                 let pub_key = ecies_ed25519::PublicKey::from_bytes(&pub_key).unwrap();
 
                 let mut lock = self.cur_state.lock().unwrap();
@@ -222,7 +232,13 @@ impl MiningContext {
         let message = serde_json::to_string(&payload).unwrap();
         let mut csprng = StdRng::from_seed(proposal.hash.encode().try_into().unwrap());
         let encrypted = encrypt(&proposal.params.pub_key, message.as_bytes(), &mut csprng).unwrap();
-        let params = rpc_params![serde_json::json!(encrypted.clone())];
+        let sign = self.sign(&encrypted);
+
+        let params = rpc_params![
+            serde_json::json!(encrypted.clone()),
+            serde_json::json!(self.member_id.clone()),
+            serde_json::json!(hex::encode(sign.to_bytes()))
+        ];
 
         let _response: JsonValue = self
             .client
@@ -230,6 +246,12 @@ impl MiningContext {
             .await?;
 
         Ok(())
+    }
+
+    fn sign(&self, msg: &[u8]) -> Signature {
+        const CTX: &[u8] = b"Mining pool";
+        let sig = self.key.sign_simple(CTX, msg, &self.key.to_public());
+        sig
     }
 }
 

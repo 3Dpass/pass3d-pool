@@ -31,14 +31,17 @@ struct Cli {
     #[structopt(short, long)]
     /// Pool member AccountId
     member_id: String,
+
+    #[structopt(short, long)]
+    /// Member key to sign requests
+    key: String,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = Cli::from_args();
     let p3d_params = P3dParams::new(args.algo.as_str());
-    let ctx = MiningContext::new(p3d_params, args.url.as_str(), args.pool_id, args.member_id)?;
-
+    let ctx = MiningContext::new(p3d_params, args.url.as_str(), args.pool_id, args.member_id, args.key)?;
     let ctx = Arc::new(ctx);
     let _addr = rpc::run_server(ctx.clone()).await?;
 
