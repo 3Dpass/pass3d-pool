@@ -25,9 +25,11 @@ cargo build --release
 ```
 ./target/release/pass3d-pool --algo grid2d_v2 --pool-id <POOL's P3D ADDRESS> --url http://1.2.3.4:9933 --member-id <MINER'S P3D ADDRESS> --key MINER's SECRET SEED(hex) --threads 32
 ```
-`--threads` is the amount of threads being exploited for 3D objects handling
-`--url` is the pool server's ip/host to connect to
-`--key` is the Secret seed `(0x30...)` for the P3D address, which is being used for signing messages and miner authentication. [Inspect](https://3dpass.org/mainnet.html#inspecting_seed_phrase) your seed phrase with the `--scheme sr25519` to get one like this:
+- `--threads` is the amount of threads being exploited for 3D objects handling
+- `--url` is the pool server's ip/host to connect to
+- `--key` is the Secret seed `(0x30...)` for the P3D address, which is being used for signing messages and miner authentication. 
+
+[Inspect](https://3dpass.org/mainnet.html#inspecting_seed_phrase) your seed phrase with the `--scheme sr25519` to get the Secret seed like this:
 ```
 cd 3DP
 ./target/release/poscan-consensus key inspect --scheme sr25519 "YOUR SEED PHRASE"
