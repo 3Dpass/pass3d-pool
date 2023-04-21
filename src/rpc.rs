@@ -17,7 +17,7 @@ use rand::{rngs::StdRng, SeedableRng};
 use serde::Serialize;
 use schnorrkel::{SecretKey, MiniSecretKey, ExpansionMode, Signature};
 
-const LISTEN_ADDR: &'static str = "127.0.0.1:9833";
+const LISTEN_ADDR: &str = "127.0.0.1:9833";
 
 #[derive(Clone)]
 pub(crate) struct MiningParams {
