@@ -29,7 +29,8 @@ cargo build --release
 - `--url` is the pool server ip/host to connect to
 - `--key` is the private key for the member's P3D address, which is being used for signing messages and member authentication.
 
-### Inspect a seed phrase to get the `private key`
+### Inspect
+Inspect a seed phrase to get the private key:
 ```
 ./target/release/pass3d-pool inspect --seed 'one two ... twelve'
 ```
