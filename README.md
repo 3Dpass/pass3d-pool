@@ -27,9 +27,9 @@ cargo build --release
 ```
 - `--threads` is the amount of threads being exploited for 3D objects handling
 - `--url` is the pool server's ip/host to connect to
-- `--key` is the Secret seed `(0x...)` for the P3D address, which is being used for signing messages and miner authentication. Example: `0x..the_line_was_inspected`.
+- `--key` is the Secret seed hex (ex.`0x...secret_key`) for the P3D address, which is being used for signing messages and miner authentication..
 
-### Inspect a seed phrase to get the SECRET SEED(hex)
+### Inspect a seed phrase to get the `secret key`
 ```
 ./target/release/pass3d-pool inspect --seed 'one two ... twelve'
 ```
