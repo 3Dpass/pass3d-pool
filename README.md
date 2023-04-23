@@ -23,13 +23,13 @@ cargo build --release
 ```
 ## Run
 ```
-./target/release/pass3d-pool run --algo grid2d_v2 --pool-id <POOL's P3D ADDRESS> --url http://1.2.3.4:9933 --member-id <MINER'S P3D ADDRESS> --key MINER's SECRET SEED(hex) --threads 32
+./target/release/pass3d-pool run --algo grid2d_v2 --pool-id <POOL's P3D ADDRESS> --url http://1.2.3.4:9933 --member-id <MINER'S P3D ADDRESS> --key <MINER's PRIVATE KEY> --threads 32
 ```
 - `--threads` is the amount of threads being exploited for 3D objects handling
-- `--url` is the pool server's ip/host to connect to
-- `--key` is the Secret seed hex (ex.`0x...secret_key`) for the P3D address, which is being used for signing messages and miner authentication..
+- `--url` is the pool server ip/host to connect to
+- `--key` is the private key for the member's P3D address, which is being used for signing messages and member authentication.
 
-### Inspect a seed phrase to get the `secret key`
+### Inspect a seed phrase to get the `private key`
 ```
 ./target/release/pass3d-pool inspect --seed 'one two ... twelve'
 ```
