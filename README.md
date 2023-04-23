@@ -27,19 +27,13 @@ cargo build --release
 ```
 - `--threads` is the amount of threads being exploited for 3D objects handling
 - `--url` is the pool server's ip/host to connect to
-- `--key` is the Secret seed `(0x30...)` for the P3D address, which is being used for signing messages and miner authentication. 
+- `--key` is the Secret seed `(0x30...)` for the P3D address, which is being used for signing messages and miner authentication.
 
-## Inspect
+### Inspect a seed phrase to get the SECRET SEED(hex)
 ```
 ./target/release/pass3d-pool inspect --seed 'one two ... twelve'
 ```
-- `--seed` is the secret phrase to get key
-
-[Inspect](https://3dpass.org/mainnet.html#inspecting_seed_phrase) your seed phrase with the `--scheme sr25519` to get the Secret seed like this:
-```
-cd 3DP
-./target/release/poscan-consensus key inspect --scheme sr25519 "YOUR SEED PHRASE"
-```
+- `--seed` is the seed phrase for your P3D address
 
 ### Parameters
 ```
