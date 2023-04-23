@@ -2,6 +2,8 @@
 
 use std::sync::Arc;
 use std::thread;
+use bip39::{Mnemonic, Language};
+use substrate_bip39::mini_secret_from_entropy;
 use structopt::StructOpt;
 
 use crate::rpc::{MiningContext, P3dParams};
@@ -9,10 +11,18 @@ use crate::rpc::{MiningContext, P3dParams};
 mod rpc;
 mod worker;
 
-#[derive(StructOpt)]
-struct Cli {
+#[derive(Debug,StructOpt)]
+enum SubCommand {
+    #[structopt(name = "run", about = "Use run to start pool client")]
+    Run(RunOptions),
+    #[structopt(name = "inspect", about = "Use inspect to convert seed to key")]
+    Inspect(InspectOptions)
+}
+
+#[derive(Debug,StructOpt)]
+struct RunOptions {
     /// 3d hash algorithm
-    #[structopt(short, long)]
+    #[structopt(default_value = "grid2d_v2", short, long)]
     /// Mining algorithm. Supported algorithms: grid2d, grid2d_v2, grid2d_v3
     algo: String,
 
@@ -37,26 +47,53 @@ struct Cli {
     key: String,
 }
 
+#[derive(Debug,StructOpt)]
+struct InspectOptions {
+    #[structopt(short, long)]
+    /// Seed phrase
+    seed: String,
+}
+
+#[derive(StructOpt)]
+struct Cli {
+    #[structopt(subcommand)]
+    cmd: SubCommand
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = Cli::from_args();
-    let p3d_params = P3dParams::new(args.algo.as_str());
-    let ctx = MiningContext::new(p3d_params, args.url.as_str(), args.pool_id, args.member_id, args.key)?;
-    let ctx = Arc::new(ctx);
-    let _addr = rpc::run_server(ctx.clone()).await?;
 
-    let ctxx = ctx.clone();
-    tokio::spawn(worker::node_client(ctxx));
+    match args.cmd {
+        SubCommand::Inspect(opt) => {
+            let mnemonic = Mnemonic::from_phrase(&opt.seed, Language::English);
+            match mnemonic {
+                Ok(mnemonic) =>
+                    match mini_secret_from_entropy(mnemonic.entropy(), "") {
+                        Ok(minikey) => println!("{}", hex::encode(minikey.to_bytes())),
+                        Err(e) => println!("{:?}", e),
+                    },
+                Err(e) => println!("{:?}", e),
+            };
+            Ok(())
+        },
+        SubCommand::Run(opt) => {
+            let p3d_params = P3dParams::new(opt.algo.as_str());
+            let ctx = MiningContext::new(p3d_params, opt.url.as_str(), opt.pool_id, opt.member_id, opt.key)?;
+            let ctx = Arc::new(ctx);
+            let _addr = rpc::run_server(ctx.clone()).await?;
+            let ctxx = ctx.clone();
+            tokio::spawn(worker::node_client(ctxx));
 
-    for _ in 0..args.threads.unwrap_or(1) {
-        let ctx = ctx.clone();
-        thread::spawn(move || {
-            // Process each socket concurrently.
-            worker::worker(&ctx);
-        });
+            for _ in 0..opt.threads.unwrap_or(1) {
+                let ctx = ctx.clone();
+                thread::spawn(move || {
+                    // Process each socket concurrently.
+                    worker::worker(&ctx);
+                });
+            }
+            worker::start_timer(ctx.clone());
+            futures::future::pending().await
+        },
     }
-
-    worker::start_timer(ctx.clone());
-
-    futures::future::pending().await
 }
