@@ -188,11 +188,11 @@ impl MiningContext {
                 Some(pow_dfclty),
                 Some(pub_key),
             ) => {
-                let pre_hash = H256::from_str(&pre_hash).unwrap();
-                let parent_hash = H256::from_str(&parent_hash).unwrap();
-                let win_dfclty = U256::from_str_radix(&win_dfclty, 16).unwrap();
-                let pow_dfclty = U256::from_str_radix(&pow_dfclty, 16).unwrap();
-                let pub_key = U256::from_str_radix(&pub_key, 16).unwrap();
+                let pre_hash = H256::from_str(pre_hash).unwrap();
+                let parent_hash = H256::from_str(parent_hash).unwrap();
+                let win_dfclty = U256::from_str_radix(win_dfclty, 16).unwrap();
+                let pow_dfclty = U256::from_str_radix(pow_dfclty, 16).unwrap();
+                let pub_key = U256::from_str_radix(pub_key, 16).unwrap();
                 let mut pub_key = pub_key.encode();
                 pub_key.reverse();
                 let pub_key = ecies_ed25519::PublicKey::from_bytes(&pub_key).unwrap();
@@ -250,8 +250,7 @@ impl MiningContext {
 
     fn sign(&self, msg: &[u8]) -> Signature {
         const CTX: &[u8] = b"Mining pool";
-        let sig = self.key.sign_simple(CTX, msg, &self.key.to_public());
-        sig
+        self.key.sign_simple(CTX, msg, &self.key.to_public())
     }
 }
 

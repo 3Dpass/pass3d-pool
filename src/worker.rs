@@ -97,8 +97,8 @@ pub(crate) fn worker(ctx: &MiningContext) {
             if hash_meets_difficulty(&comp.get_work(), pow_dfclty) {
                 let prop = MiningProposal {
                     params: mining_params.clone(),
-                    hash: obj_hash.clone(),
-                    obj_id: mining_obj.obj_id.clone(),
+                    hash: obj_hash,
+                    obj_id: mining_obj.obj_id,
                     obj: mining_obj.obj.clone(),
                 };
                 ctx.push_to_queue(prop);
@@ -113,9 +113,9 @@ pub(crate) fn worker(ctx: &MiningContext) {
             if hash_meets_difficulty(&comp.get_work(), win_dfclty) {
                 let prop = MiningProposal {
                     params: mining_params.clone(),
-                    hash: obj_hash.clone(),
-                    obj_id: mining_obj.obj_id.clone(),
-                    obj: mining_obj.obj.clone(),
+                    hash: obj_hash,
+                    obj_id: mining_obj.obj_id,
+                    obj: mining_obj.obj,
                 };
                 ctx.push_to_queue(prop);
             }
@@ -129,8 +129,7 @@ pub(crate) async fn node_client(ctx: Arc<MiningContext>) {
     loop {
         let maybe_prop = {
             let mut lock = ctx.out_queue.lock().unwrap();
-            let maybe_prop = (*lock).pop_front();
-            maybe_prop
+            (*lock).pop_front()
         };
         if let Some(prop) = maybe_prop {
             let res = ctx.push_to_node(prop).await;
