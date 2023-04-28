@@ -4,16 +4,14 @@ version = "0.2.0"
 authors = ["3Dpass"]
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 structopt = "0.3.13"
 anyhow = "1"
-serde = {version = "1.0", default-features = false}
+serde = { version = "1.0", default-features = false }
 serde_json = { version = "1" }
 futures = "0.3"
 sha3 = "0.9"
-tokio = {version = "1.25", features = ["macros", "rt-multi-thread"], default-features = false}
+tokio = { version = "1.25", features = ["macros", "rt-multi-thread"], default-features = false }
 jsonrpsee = { version = "0.16", features = ["server", "client"] }
 codec = { package = "parity-scale-codec", version = "3.1", default-features = false, features = ["derive"] }
 primitive-types = { version = "0.11", default-features = false, features = ["serde"] }
