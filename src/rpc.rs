@@ -164,7 +164,7 @@ impl MiningContext {
     }
 
     pub(crate) async fn ask_mining_params(&self) -> anyhow::Result<()> {
-        println!("🙋‍♀️ Ask for mining params...");
+        println!("Ask for mining params...");
 
         let response: JsonValue = self
             .client
@@ -205,7 +205,7 @@ impl MiningContext {
                     win_dfclty,
                     pub_key,
                 });
-                println!("✅ Mining params applied. Pow difficulty: {}", pow_dfclty);
+                println!("Mining params applied. Pow difficulty: {}", pow_dfclty);
             }
             _ => {
                 println!("🟥 Ask_mining_params error: Incorrect response from poll node");
