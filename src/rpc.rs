@@ -2,6 +2,7 @@ use std::collections::vec_deque::VecDeque;
 use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::AtomicUsize;
 
 use codec::Encode;
 
@@ -110,6 +111,7 @@ pub(crate) struct MiningContext {
     pub(crate) cur_state: Mutex<Option<MiningParams>>,
     pub(crate) in_queue: Mutex<VecDeque<MiningObj>>,
     pub(crate) out_queue: Mutex<VecDeque<MiningProposal>>,
+    pub iterations_count: Arc<AtomicUsize>,
 
     pub(crate) client: HttpClient,
 }
@@ -137,6 +139,7 @@ impl MiningContext {
             cur_state: Mutex::new(None),
             in_queue: Mutex::new(VecDeque::new()),
             out_queue: Mutex::new(VecDeque::new()),
+            iterations_count: Arc::new(AtomicUsize::new(0)),
             client: HttpClientBuilder::default().build(pool_addr)?,
         })
     }

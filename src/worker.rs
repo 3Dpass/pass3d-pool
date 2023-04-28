@@ -1,5 +1,6 @@
 use std::str::FromStr;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
 
@@ -94,6 +95,7 @@ pub(crate) fn worker(ctx: &MiningContext) {
                 pre_hash,
                 poscan_hash,
             };
+            ctx.iterations_count.fetch_add(1, Ordering::Relaxed);
 
             if hash_meets_difficulty(&comp.get_work(), pow_dfclty) {
                 let prop = MiningProposal {
@@ -148,8 +150,27 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
     let _forever = tokio::spawn(async move {
         let mut interval = time::interval(ASK_MINING_PARAMS_PERIOD);
 
+        let mut prev_iterations: usize = 0;
+        let mut ema_iterations_per_second: f64 = 0.0;
+        // EMA smoothing factor between 0 and 1; higher value means more smoothing
+        let alpha: f64 = 0.3;
+
         loop {
             interval.tick().await;
+
+            let current_iterations = ctx.iterations_count.load(Ordering::Relaxed);
+            let diff_iterations = current_iterations - prev_iterations;
+
+            let duration_in_seconds = ASK_MINING_PARAMS_PERIOD.as_secs_f64();
+            let iterations_per_second = diff_iterations as f64 / duration_in_seconds;
+
+            // Update exponential moving average
+            ema_iterations_per_second = alpha * iterations_per_second + (1.0 - alpha) * ema_iterations_per_second;
+
+            println!("⛏️  Speed: {:.2?} obj/s", ema_iterations_per_second);
+
+            prev_iterations = current_iterations;
+
             let res = ctx.ask_mining_params().await;
             if let Err(e) = res {
                 println!("🟥 Ask for mining params error: {}", &e);
