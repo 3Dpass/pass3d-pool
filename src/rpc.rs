@@ -164,7 +164,7 @@ impl MiningContext {
     }
 
     pub(crate) async fn ask_mining_params(&self) -> anyhow::Result<()> {
-        println!("Ask mining params...");
+        println!("🙋‍♀️ Ask for mining params...");
 
         let response: JsonValue = self
             .client
@@ -205,17 +205,17 @@ impl MiningContext {
                     win_dfclty,
                     pub_key,
                 });
-                println!("Mining params applied");
+                println!("✅ Mining params applied. Pow difficulty: {}", pow_dfclty);
             }
             _ => {
-                println!("Ask_mining_params error: Incorrect response from poll node");
+                println!("🟥 Ask_mining_params error: Incorrect response from poll node");
             }
         }
         Ok(())
     }
 
     pub(crate) async fn push_to_node(&self, proposal: MiningProposal) -> anyhow::Result<()> {
-        println!("Pushing obj to node...");
+        println!("📦 Pushing obj to node...");
 
         let payload = Payload {
             pool_id:     self.pool_id.clone(),
@@ -266,7 +266,7 @@ pub(crate) async fn run_server(ctx: Arc<MiningContext>) -> anyhow::Result<Socket
 
     tokio::spawn(handle.stopped());
 
-    println!("Server listening on {}", LISTEN_ADDR);
+    println!("🚀 Server listening on {}", LISTEN_ADDR);
 
     Ok(addr)
 }

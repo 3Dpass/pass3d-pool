@@ -1,17 +1,19 @@
-use codec::Encode;
-use primitive_types::{H256, U256};
-use sha3::{Digest, Sha3_256};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
+
+use codec::Encode;
+use p3d::p3d_process;
+use primitive_types::{H256, U256};
+use sha3::{Digest, Sha3_256};
 use tokio::time;
 
-use super::rpc::MiningParams;
+use crate::rpc::MiningProposal;
+
 use super::MiningContext;
 use super::P3dParams;
-use crate::rpc::MiningProposal;
-use p3d::p3d_process;
+use super::rpc::MiningParams;
 
 const ASK_MINING_PARAMS_PERIOD: Duration = Duration::from_secs(10);
 
@@ -38,8 +40,7 @@ impl Compute {
     pub(crate) fn get_work(&self) -> H256 {
         let encoded_data = self.encode();
         let hash_digest = Sha3_256::digest(&encoded_data);
-        let h256_hash = H256::from_slice(hash_digest.as_slice());
-        h256_hash
+        H256::from_slice(&hash_digest)
     }
 }
 
@@ -85,7 +86,6 @@ pub(crate) fn worker(ctx: &MiningContext) {
             );
             let first_hash = &res_hashes.unwrap()[0];
             let obj_hash = H256::from_str(first_hash).unwrap();
-            println!("obj_hash = {}", &obj_hash.to_string());
 
             let poscan_hash = DoubleHash { pre_hash, obj_hash }.calc_hash();
 
@@ -103,6 +103,7 @@ pub(crate) fn worker(ctx: &MiningContext) {
                     obj: mining_obj.obj.clone(),
                 };
                 ctx.push_to_queue(prop);
+                println!("💎 Hash meets difficulty: {}", &pow_dfclty);
             }
 
             let comp = Compute {
@@ -135,7 +136,7 @@ pub(crate) async fn node_client(ctx: Arc<MiningContext>) {
         if let Some(prop) = maybe_prop {
             let res = ctx.push_to_node(prop).await;
             if let Err(e) = res {
-                println!("Error: {}", &e);
+                println!("🟥 Error: {}", &e);
             }
         } else {
             tokio::time::sleep(Duration::from_millis(100)).await;
@@ -151,7 +152,7 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
             interval.tick().await;
             let res = ctx.ask_mining_params().await;
             if let Err(e) = res {
-                println!("Ask mining params error: {}", &e);
+                println!("🟥 Ask for mining params error: {}", &e);
             }
         }
     });
