@@ -13,7 +13,7 @@ use super::P3dParams;
 use crate::rpc::MiningProposal;
 use p3d::p3d_process;
 
-const ASK_MINING_PRAMS_PERIOD: Duration = Duration::from_secs(10);
+const ASK_MINING_PARAMS_PERIOD: Duration = Duration::from_secs(10);
 
 #[derive(Encode)]
 pub struct DoubleHash {
@@ -144,7 +144,7 @@ pub(crate) async fn node_client(ctx: Arc<MiningContext>) {
 
 pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
     let _forever = tokio::spawn(async move {
-        let mut interval = time::interval(ASK_MINING_PRAMS_PERIOD);
+        let mut interval = time::interval(ASK_MINING_PARAMS_PERIOD);
 
         loop {
             interval.tick().await;
