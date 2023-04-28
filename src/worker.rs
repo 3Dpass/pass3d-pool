@@ -36,15 +36,16 @@ pub struct Compute {
 
 impl Compute {
     pub(crate) fn get_work(&self) -> H256 {
-        H256::from_slice(Sha3_256::digest(&self.encode()[..]).as_slice())
+        let encoded_data = self.encode();
+        let hash_digest = Sha3_256::digest(&encoded_data);
+        let h256_hash = H256::from_slice(hash_digest.as_slice());
+        h256_hash
     }
 }
 
 pub fn hash_meets_difficulty(hash: &H256, difficulty: U256) -> bool {
     let num_hash = U256::from(&hash[..]);
-    let (_, overflowed) = num_hash.overflowing_mul(difficulty);
-
-    !overflowed
+    !num_hash.overflowing_mul(difficulty).1
 }
 
 pub(crate) fn worker(ctx: &MiningContext) {
