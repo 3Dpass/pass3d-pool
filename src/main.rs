@@ -2,24 +2,25 @@
 
 use std::sync::Arc;
 use std::thread;
-use bip39::{Mnemonic, Language};
-use substrate_bip39::mini_secret_from_entropy;
+
+use bip39::{Language, Mnemonic};
 use structopt::StructOpt;
+use substrate_bip39::mini_secret_from_entropy;
 
 use crate::rpc::{MiningContext, P3dParams};
 
 mod rpc;
 mod worker;
 
-#[derive(Debug,StructOpt)]
+#[derive(Debug, StructOpt)]
 enum SubCommand {
     #[structopt(name = "run", about = "Use run to start pool client")]
     Run(RunOptions),
     #[structopt(name = "inspect", about = "Use inspect to convert seed to key")]
-    Inspect(InspectOptions)
+    Inspect(InspectOptions),
 }
 
-#[derive(Debug,StructOpt)]
+#[derive(Debug, StructOpt)]
 struct RunOptions {
     /// 3d hash algorithm
     #[structopt(default_value = "grid2d_v2", short, long)]
@@ -47,7 +48,7 @@ struct RunOptions {
     key: String,
 }
 
-#[derive(Debug,StructOpt)]
+#[derive(Debug, StructOpt)]
 struct InspectOptions {
     #[structopt(short, long)]
     /// Seed phrase
@@ -57,7 +58,7 @@ struct InspectOptions {
 #[derive(StructOpt)]
 struct Cli {
     #[structopt(subcommand)]
-    cmd: SubCommand
+    cmd: SubCommand,
 }
 
 #[tokio::main]
@@ -70,20 +71,20 @@ async fn main() -> anyhow::Result<()> {
             match mnemonic {
                 Ok(mnemonic) =>
                     match mini_secret_from_entropy(mnemonic.entropy(), "") {
-                        Ok(minikey) => println!("{}", hex::encode(minikey.to_bytes())),
+                        Ok(mini_key) => println!("{}", hex::encode(mini_key.to_bytes())),
                         Err(e) => println!("{:?}", e),
                     },
                 Err(e) => println!("{:?}", e),
             };
             Ok(())
-        },
+        }
         SubCommand::Run(opt) => {
             let p3d_params = P3dParams::new(opt.algo.as_str());
             let ctx = MiningContext::new(p3d_params, opt.url.as_str(), opt.pool_id, opt.member_id, opt.key)?;
             let ctx = Arc::new(ctx);
             let _addr = rpc::run_server(ctx.clone()).await?;
-            let ctxx = ctx.clone();
-            tokio::spawn(worker::node_client(ctxx));
+            let ctx_clone = ctx.clone();
+            tokio::spawn(worker::node_client(ctx_clone));
 
             for _ in 0..opt.threads.unwrap_or(1) {
                 let ctx = ctx.clone();
@@ -94,6 +95,6 @@ async fn main() -> anyhow::Result<()> {
             }
             worker::start_timer(ctx.clone());
             futures::future::pending().await
-        },
+        }
     }
 }
