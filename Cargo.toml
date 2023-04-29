@@ -25,4 +25,4 @@ substrate-bip39 = "0.4"
 genmesh = "0.6.2"
 cgmath = "0.18.0"
 
-p3d = { path = "./../p3d" }
+p3d = { version="0.3.3", git = "https://github.com/3Dpass/p3d", tag = "v0.6.3" }
