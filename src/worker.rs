@@ -189,10 +189,8 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
 }
 
 pub fn create_mining_obj() -> Vec<u8> {
-    let radius: f32 = 1.0;
-
-    let dents_count = 6;
-    let dent_size: f32 = 0.4;
+    let dents_count = 16;
+    let dent_size: f32 = 0.8;
 
     let object = SphereUv::new(16, 12);
 
@@ -206,9 +204,8 @@ pub fn create_mining_obj() -> Vec<u8> {
     let vertices_count = vertices.len();
     for _ in 0..dents_count {
         let index = rng.gen_range(0, vertices_count);
-        let distance = rng.gen_range(0.0, dent_size);
-        let lerp_factor = distance / radius;
-        vertices[index] = vertices[index].lerp(Vector3::new(0.0, 0.0, vertices[index].z), lerp_factor);
+        let distance = rng.gen_range(-dent_size, dent_size);
+        vertices[index] = vertices[index].lerp(Vector3::new(0.0, 0.0, vertices[index].z), distance);
     }
 
     let scale_matrix = Matrix4::from_nonuniform_scale(0.8, 0.8, 1.0);
@@ -232,8 +229,7 @@ pub fn create_mining_obj() -> Vec<u8> {
 
     // Add vertices
     for vertex in vertices.iter() {
-        let pos = vertex * radius;
-        obj_data.push_str(&format!("v {:.6} {:.6} {:.6}\n", pos.x, pos.y, pos.z));
+        obj_data.push_str(&format!("v {:.6} {:.6} {:.6}\n", vertex.x, vertex.y, vertex.z));
     }
 
     // Add vertex normals (same as vertex positions, since it's a sphere)
