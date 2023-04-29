@@ -91,6 +91,12 @@ pub(crate) fn worker(ctx: &MiningContext) {
             sect as i16,
             pre,
         );
+
+        // check if Result is Ok and if it contains at least one hash, otherwise continue
+        if res_hashes.is_err() || res_hashes.as_ref().unwrap().len() == 0 {
+            continue;
+        }
+
         let first_hash = &res_hashes.unwrap()[0];
         let obj_hash = H256::from_str(first_hash).unwrap();
 
