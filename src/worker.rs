@@ -117,7 +117,7 @@ pub(crate) fn worker(ctx: &MiningContext) {
                 obj: mining_obj.obj.clone(),
             };
             ctx.push_to_queue(prop);
-            println!("💎 Hash meets difficulty: {}", &pow_dfclty);
+            println!("💎 Hash meets pow difficulty: {}, win difficulty: {}", &pow_dfclty, &win_dfclty);
         }
 
         let comp = Compute {
@@ -134,6 +134,7 @@ pub(crate) fn worker(ctx: &MiningContext) {
                 obj: mining_obj.obj,
             };
             ctx.push_to_queue(prop);
+            println!("🔥💎 Hash meets win difficulty: {}", &win_dfclty);
         }
     }
 }
