@@ -22,5 +22,7 @@ hex = "0.4"
 ed25519_to_curve25519 = "0.2"
 tiny-bip39 = "1.0.0"
 substrate-bip39 = "0.4"
+genmesh = "0.6.2"
+cgmath = "0.18.0"
 
 p3d = { path = "./../p3d" }

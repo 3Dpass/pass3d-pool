@@ -1,16 +1,21 @@
+use std::convert::TryInto;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
 
+use cgmath::{InnerSpace, Matrix4, Vector3, Vector4, VectorSpace};
 use codec::Encode;
+use genmesh::{MapVertex, Triangle, Triangulate};
+use genmesh::generators::{IndexedPolygon, SharedVertex, SphereUv};
 use p3d::p3d_process;
 use primitive_types::{H256, U256};
+use rand::prelude::*;
 use sha3::{Digest, Sha3_256};
 use tokio::time;
 
-use crate::rpc::MiningProposal;
+use crate::rpc::{MiningObj, MiningProposal};
 
 use super::MiningContext;
 use super::P3dParams;
@@ -64,67 +69,65 @@ pub(crate) fn worker(ctx: &MiningContext) {
                 continue;
             }
         };
-        let mut obj_lock = ctx.in_queue.lock().unwrap();
-        let obj = (*obj_lock).pop_front();
-        drop(obj_lock);
 
-        if let Some(mining_obj) = obj {
-            let MiningParams {
-                pre_hash,
-                parent_hash,
-                win_dfclty,
-                pow_dfclty,
-                ..
-            } = mining_params;
-            let pre = parent_hash.encode()[0..4].try_into().ok();
+        let mining_obj: MiningObj = MiningObj {
+            obj_id: 1,
+            obj: create_mining_obj(),
+        };
 
-            let res_hashes = p3d_process(
-                mining_obj.obj.as_slice(),
-                algo.as_p3d_algo(),
-                grid as i16,
-                sect as i16,
-                pre,
-            );
-            let first_hash = &res_hashes.unwrap()[0];
-            let obj_hash = H256::from_str(first_hash).unwrap();
+        let MiningParams {
+            pre_hash,
+            parent_hash,
+            win_dfclty,
+            pow_dfclty,
+            ..
+        } = mining_params;
+        let pre = parent_hash.encode()[0..4].try_into().ok();
 
-            let poscan_hash = DoubleHash { pre_hash, obj_hash }.calc_hash();
+        let res_hashes = p3d_process(
+            mining_obj.obj.as_slice(),
+            algo.as_p3d_algo(),
+            grid as i16,
+            sect as i16,
+            pre,
+        );
+        let first_hash = &res_hashes.unwrap()[0];
+        let obj_hash = H256::from_str(first_hash).unwrap();
 
-            let comp = Compute {
-                difficulty: pow_dfclty,
-                pre_hash,
-                poscan_hash,
+        let poscan_hash = DoubleHash { pre_hash, obj_hash }.calc_hash();
+
+        let comp = Compute {
+            difficulty: pow_dfclty,
+            pre_hash,
+            poscan_hash,
+        };
+        ctx.iterations_count.fetch_add(1, Ordering::Relaxed);
+
+        if hash_meets_difficulty(&comp.get_work(), pow_dfclty) {
+            let prop = MiningProposal {
+                params: mining_params.clone(),
+                hash: obj_hash,
+                obj_id: mining_obj.obj_id,
+                obj: mining_obj.obj.clone(),
             };
-            ctx.iterations_count.fetch_add(1, Ordering::Relaxed);
+            ctx.push_to_queue(prop);
+            println!("💎 Hash meets difficulty: {}", &pow_dfclty);
+        }
 
-            if hash_meets_difficulty(&comp.get_work(), pow_dfclty) {
-                let prop = MiningProposal {
-                    params: mining_params.clone(),
-                    hash: obj_hash,
-                    obj_id: mining_obj.obj_id,
-                    obj: mining_obj.obj.clone(),
-                };
-                ctx.push_to_queue(prop);
-                println!("💎 Hash meets difficulty: {}", &pow_dfclty);
-            }
+        let comp = Compute {
+            difficulty: win_dfclty,
+            pre_hash,
+            poscan_hash,
+        };
 
-            let comp = Compute {
-                difficulty: win_dfclty,
-                pre_hash,
-                poscan_hash,
+        if hash_meets_difficulty(&comp.get_work(), win_dfclty) {
+            let prop = MiningProposal {
+                params: mining_params.clone(),
+                hash: obj_hash,
+                obj_id: mining_obj.obj_id,
+                obj: mining_obj.obj,
             };
-
-            if hash_meets_difficulty(&comp.get_work(), win_dfclty) {
-                let prop = MiningProposal {
-                    params: mining_params.clone(),
-                    hash: obj_hash,
-                    obj_id: mining_obj.obj_id,
-                    obj: mining_obj.obj,
-                };
-                ctx.push_to_queue(prop);
-            }
-        } else {
-            thread::sleep(Duration::from_millis(100))
+            ctx.push_to_queue(prop);
         }
     }
 }
@@ -153,7 +156,7 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
         let mut prev_iterations: usize = 0;
         let mut ema_iterations_per_second: f64 = 0.0;
         // EMA smoothing factor between 0 and 1; higher value means more smoothing
-        let alpha: f64 = 0.3;
+        let alpha: f64 = 0.8;
 
         loop {
             interval.tick().await;
@@ -177,4 +180,68 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
             }
         }
     });
+}
+
+pub fn create_mining_obj() -> Vec<u8> {
+    let radius: f32 = 1.0;
+
+    let dents_count = 32;
+    let dent_size: f32 = 0.45;
+
+    let sphere = SphereUv::new(16, 12);
+
+    let mut vertices: Vec<Vector3<f32>> = sphere.shared_vertex_iter()
+        .map(|v| v.pos.into())
+        .map(|v: [f32; 3]| Vector3::new(v[0], v[1], v[2]))
+        .collect();
+
+    // Move random N points towards the sphere center
+    let mut rng = thread_rng();
+    for _ in 0..dents_count {
+        let index = rng.gen_range(0, vertices.len());
+        let distance = rng.gen_range(0.0, dent_size);
+        let lerp_factor = distance / radius;
+        vertices[index] = vertices[index].lerp(Vector3::new(0.0, 0.0, vertices[index].z), lerp_factor);
+    }
+
+    let scale_matrix = Matrix4::from_nonuniform_scale(0.8, 0.8, 1.0);
+
+    vertices = vertices.into_iter()
+        .map(|v| {
+            let v4 = Vector4::new(v.x, v.y, v.z, 1.0); // Convert to Vector4
+            let transformed_v4 = scale_matrix * v4;
+            Vector3::new(transformed_v4.x, transformed_v4.y, transformed_v4.z) // Convert back to Vector3
+        })
+        .collect();
+
+    let triangles: Vec<Triangle<usize>> = sphere.indexed_polygon_iter()
+        .triangulate()
+        .collect();
+
+    let mut obj_data = String::new();
+
+    // Add object name
+    obj_data.push_str("o\n");
+
+    // Add vertices
+    for vertex in vertices.iter() {
+        let pos = vertex * radius;
+        obj_data.push_str(&format!("v {:.6} {:.6} {:.6}\n", pos.x, pos.y, pos.z));
+    }
+
+    // Add vertex normals (same as vertex positions, since it's a sphere)
+    for vertex in vertices.iter() {
+        let normal = vertex.normalize();
+        obj_data.push_str(&format!("vn {:.6} {:.6} {:.6}\n", normal.x, normal.y, normal.z));
+    }
+
+    // Add faces
+    for triangle in triangles.iter() {
+        let f = triangle.map_vertex(|i| i + 1);
+        obj_data.push_str(&format!("f {}//{} {}//{} {}//{}\n", f.x, f.x, f.y, f.y, f.z, f.z));
+    }
+
+    // println!("{}", obj_data);
+
+    obj_data.into_bytes()
 }
