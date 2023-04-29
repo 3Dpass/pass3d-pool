@@ -185,20 +185,21 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
 pub fn create_mining_obj() -> Vec<u8> {
     let radius: f32 = 1.0;
 
-    let dents_count = 32;
-    let dent_size: f32 = 0.45;
+    let dents_count = 6;
+    let dent_size: f32 = 0.4;
 
-    let sphere = SphereUv::new(16, 12);
+    let object = SphereUv::new(16, 12);
 
-    let mut vertices: Vec<Vector3<f32>> = sphere.shared_vertex_iter()
+    let mut vertices: Vec<Vector3<f32>> = object.shared_vertex_iter()
         .map(|v| v.pos.into())
         .map(|v: [f32; 3]| Vector3::new(v[0], v[1], v[2]))
         .collect();
 
     // Move random N points towards the sphere center
     let mut rng = thread_rng();
+    let vertices_count = vertices.len();
     for _ in 0..dents_count {
-        let index = rng.gen_range(0, vertices.len());
+        let index = rng.gen_range(0, vertices_count);
         let distance = rng.gen_range(0.0, dent_size);
         let lerp_factor = distance / radius;
         vertices[index] = vertices[index].lerp(Vector3::new(0.0, 0.0, vertices[index].z), lerp_factor);
@@ -214,7 +215,7 @@ pub fn create_mining_obj() -> Vec<u8> {
         })
         .collect();
 
-    let triangles: Vec<Triangle<usize>> = sphere.indexed_polygon_iter()
+    let triangles: Vec<Triangle<usize>> = object.indexed_polygon_iter()
         .triangulate()
         .collect();
 
