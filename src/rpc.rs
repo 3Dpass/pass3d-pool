@@ -5,18 +5,17 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicUsize;
 
 use codec::Encode;
-
 use ecies_ed25519::encrypt;
-use jsonrpsee::core::client::ClientT;
+use jsonrpsee::{rpc_params, RpcModule};
 use jsonrpsee::core::{Error, JsonValue};
+use jsonrpsee::core::client::ClientT;
 use jsonrpsee::http_client::{HttpClient, HttpClientBuilder};
 use jsonrpsee::server::ServerBuilder;
 use jsonrpsee::types::Params;
-use jsonrpsee::{rpc_params, RpcModule};
 use primitive_types::{H256, U256};
 use rand::{rngs::StdRng, SeedableRng};
+use schnorrkel::{ExpansionMode, MiniSecretKey, SecretKey, Signature};
 use serde::Serialize;
-use schnorrkel::{SecretKey, MiniSecretKey, ExpansionMode, Signature};
 
 const LISTEN_ADDR: &str = "127.0.0.1:9833";
 
@@ -92,15 +91,15 @@ pub(crate) struct MiningProposal {
 
 #[derive(Serialize)]
 pub(crate) struct Payload {
-    pub(crate) pool_id:     String,
-    pub(crate) member_id:   String,
-    pub(crate) pre_hash:    H256,
+    pub(crate) pool_id: String,
+    pub(crate) member_id: String,
+    pub(crate) pre_hash: H256,
     pub(crate) parent_hash: H256,
-    pub(crate) algo:        String,
-    pub(crate) dfclty:      U256,
-    pub(crate) hash:        H256,
-    pub(crate) obj_id:      u64,
-    pub(crate) obj:         Vec<u8>,
+    pub(crate) algo: String,
+    pub(crate) dfclty: U256,
+    pub(crate) hash: H256,
+    pub(crate) obj_id: u64,
+    pub(crate) obj: Vec<u8>,
 }
 
 pub(crate) struct MiningContext {
@@ -124,7 +123,6 @@ impl MiningContext {
         member_id: String,
         key: String,
     ) -> anyhow::Result<Self> {
-
         let key = key.replacen("0x", "", 1);
         let key_data = hex::decode(&key[..])?;
         let key = MiniSecretKey::from_bytes(&key_data[..])
@@ -221,15 +219,15 @@ impl MiningContext {
         println!("📦 Pushing obj to node...");
 
         let payload = Payload {
-            pool_id:     self.pool_id.clone(),
-            member_id:   self.member_id.clone(),
-            pre_hash:    proposal.params.pre_hash,
+            pool_id: self.pool_id.clone(),
+            member_id: self.member_id.clone(),
+            pre_hash: proposal.params.pre_hash,
             parent_hash: proposal.params.parent_hash,
-            algo:        self.p3d_params.algo.as_str().into(),
-            dfclty:      proposal.params.pow_dfclty,
-            hash:        proposal.hash,
-            obj_id:      proposal.obj_id,
-            obj:         proposal.obj,
+            algo: self.p3d_params.algo.as_str().into(),
+            dfclty: proposal.params.pow_dfclty,
+            hash: proposal.hash,
+            obj_id: proposal.obj_id,
+            obj: proposal.obj,
         };
 
         let message = serde_json::to_string(&payload).unwrap();
