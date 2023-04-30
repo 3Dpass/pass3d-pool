@@ -228,10 +228,10 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
 }
 
 pub fn create_mining_obj() -> Vec<u8> {
-    let dents_count = 24;
+    let dents_count = 36;
     let dent_size: f32 = 0.2;
 
-    let object = SphereUv::new(14, 13);
+    let object = SphereUv::new(15, 13);
 
     let mut vertices: Vec<Vector3<f32>> = object.shared_vertex_iter()
         .map(|v| v.pos.into())
