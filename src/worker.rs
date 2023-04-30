@@ -1,11 +1,12 @@
 use std::convert::TryInto;
+use std::f32::consts::PI;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
 
-use cgmath::{InnerSpace, Matrix4, Vector3, Vector4, VectorSpace};
+use cgmath::{InnerSpace, Matrix4, Rad, Vector3, Vector4, VectorSpace};
 use codec::Encode;
 use genmesh::{MapVertex, Triangle, Triangulate};
 use genmesh::generators::{IndexedPolygon, SharedVertex, SphereUv};
@@ -50,9 +51,10 @@ impl Compute {
     }
 }
 
-pub fn hash_meets_difficulty(hash: &H256, difficulty: U256) -> bool {
+pub fn get_hash_difficulty(hash: &H256) -> U256 {
     let num_hash = U256::from(&hash[..]);
-    !num_hash.overflowing_mul(difficulty).1
+    let max = U256::max_value();
+    max / num_hash
 }
 
 pub(crate) fn worker(ctx: &MiningContext) {
@@ -100,6 +102,15 @@ pub(crate) fn worker(ctx: &MiningContext) {
         let first_hash = &res_hashes.unwrap()[0];
         let obj_hash = H256::from_str(first_hash).unwrap();
 
+        if first_hash == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" {
+            println!("🟥 Zero-contour object found");
+            // DEBUG: write mining_obj.obj to file in /tmp/objects/{random_name}.obj
+            // use std::fs::File;
+            // use std::io::Write;
+            // let mut file = File::create(format!("/tmp/objects/{}.obj", rand::thread_rng().gen::<u32>())).unwrap();
+            // file.write_all(mining_obj.obj.as_slice()).unwrap();
+        }
+
         let poscan_hash = DoubleHash { pre_hash, obj_hash }.calc_hash();
 
         let comp = Compute {
@@ -109,7 +120,9 @@ pub(crate) fn worker(ctx: &MiningContext) {
         };
         ctx.iterations_count.fetch_add(1, Ordering::Relaxed);
 
-        if hash_meets_difficulty(&comp.get_work(), pow_dfclty) {
+        let diff = get_hash_difficulty(&comp.get_work());
+
+        if diff >= pow_dfclty {
             let prop = MiningProposal {
                 params: mining_params.clone(),
                 hash: obj_hash,
@@ -117,16 +130,10 @@ pub(crate) fn worker(ctx: &MiningContext) {
                 obj: mining_obj.obj.clone(),
             };
             ctx.push_to_queue(prop);
-            println!("💎 Hash meets pow difficulty: {}, win difficulty: {}", &pow_dfclty, &win_dfclty);
+            println!("💎 Hash meets pow difficulty: {} > {}", &diff, &pow_dfclty);
         }
 
-        let comp = Compute {
-            difficulty: win_dfclty,
-            pre_hash,
-            poscan_hash,
-        };
-
-        if hash_meets_difficulty(&comp.get_work(), win_dfclty) {
+        if diff >= win_dfclty {
             let prop = MiningProposal {
                 params: mining_params.clone(),
                 hash: obj_hash,
@@ -134,7 +141,7 @@ pub(crate) fn worker(ctx: &MiningContext) {
                 obj: mining_obj.obj,
             };
             ctx.push_to_queue(prop);
-            println!("🔥💎 Hash meets win difficulty: {}", &win_dfclty);
+            println!("🔥💎 Hash meets win difficulty: {} > {}", &diff, &win_dfclty);
         }
     }
 }
@@ -190,10 +197,10 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
 }
 
 pub fn create_mining_obj() -> Vec<u8> {
-    let dents_count = 16;
-    let dent_size: f32 = 0.8;
+    let dents_count = 24;
+    let dent_size: f32 = 0.2;
 
-    let object = SphereUv::new(16, 12);
+    let object = SphereUv::new(19, 13);
 
     let mut vertices: Vec<Vector3<f32>> = object.shared_vertex_iter()
         .map(|v| v.pos.into())
@@ -205,16 +212,17 @@ pub fn create_mining_obj() -> Vec<u8> {
     let vertices_count = vertices.len();
     for _ in 0..dents_count {
         let index = rng.gen_range(0, vertices_count);
-        let distance = rng.gen_range(-dent_size, dent_size);
-        vertices[index] = vertices[index].lerp(Vector3::new(0.0, 0.0, vertices[index].z), distance);
+        let distance = rng.gen_range(0.0, dent_size);
+        vertices[index] = vertices[index].lerp(Vector3::new(0.0, 0.0, 0.0), distance);
     }
 
     let scale_matrix = Matrix4::from_nonuniform_scale(0.8, 0.8, 1.0);
+    let rotate_matrix = Matrix4::from_angle_x(Rad(PI / 2.0));
 
     vertices = vertices.into_iter()
         .map(|v| {
             let v4 = Vector4::new(v.x, v.y, v.z, 1.0); // Convert to Vector4
-            let transformed_v4 = scale_matrix * v4;
+            let transformed_v4 = scale_matrix * rotate_matrix * v4;
             Vector3::new(transformed_v4.x, transformed_v4.y, transformed_v4.z) // Convert back to Vector3
         })
         .collect();
@@ -244,8 +252,6 @@ pub fn create_mining_obj() -> Vec<u8> {
         let f = triangle.map_vertex(|i| i + 1);
         obj_data.push_str(&format!("f {}//{} {}//{} {}//{}\n", f.x, f.x, f.y, f.y, f.z, f.z));
     }
-
-    // println!("{}", obj_data);
 
     obj_data.into_bytes()
 }
