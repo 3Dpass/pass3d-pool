@@ -110,7 +110,7 @@ pub(crate) struct MiningContext {
     pub(crate) cur_state: Mutex<Option<MiningParams>>,
     pub(crate) in_queue: Mutex<VecDeque<MiningObj>>,
     pub(crate) out_queue: Mutex<VecDeque<MiningProposal>>,
-    pub iterations_count: Arc<AtomicUsize>,
+    pub(crate) iterations_count: Arc<AtomicUsize>,
 
     pub(crate) client: HttpClient,
 }
@@ -206,7 +206,7 @@ impl MiningContext {
                     win_dfclty,
                     pub_key,
                 });
-                println!("Mining params applied. Pow difficulty: {}", pow_dfclty);
+                println!("Mining params applied. Pow difficulty: {}, pre_hash: {}, parent_hash: {}", pow_dfclty, pre_hash, parent_hash);
             }
             _ => {
                 println!("🟥 Ask_mining_params error: Incorrect response from poll node");
