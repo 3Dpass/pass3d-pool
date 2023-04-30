@@ -178,7 +178,7 @@ impl MiningContext {
                 (*lock) = Some(MiningParams {
                     pre_hash,
                     parent_hash,
-                    pow_difficulty: pow_difficulty,
+                    pow_difficulty,
                     pub_key,
                 });
             }
