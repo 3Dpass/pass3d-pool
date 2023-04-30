@@ -207,7 +207,6 @@ pub fn create_mining_obj() -> Vec<u8> {
         .map(|v: [f32; 3]| Vector3::new(v[0], v[1], v[2]))
         .collect();
 
-    // Move random N points towards the sphere center
     let mut rng = thread_rng();
     let vertices_count = vertices.len();
     for _ in 0..dents_count {
@@ -216,38 +215,33 @@ pub fn create_mining_obj() -> Vec<u8> {
         vertices[index] = vertices[index].lerp(Vector3::new(0.0, 0.0, 0.0), distance);
     }
 
-    let scale_matrix = Matrix4::from_nonuniform_scale(0.8, 0.8, 1.0);
-    let rotate_matrix = Matrix4::from_angle_x(Rad(PI / 2.0));
+    let transformation_matrix = Matrix4::from_nonuniform_scale(0.8, 0.8, 1.0) *
+        Matrix4::from_angle_x(Rad(PI / 2.0));
 
-    vertices = vertices.into_iter()
-        .map(|v| {
+    vertices.iter_mut()
+        .for_each(|v| {
             let v4 = Vector4::new(v.x, v.y, v.z, 1.0); // Convert to Vector4
-            let transformed_v4 = scale_matrix * rotate_matrix * v4;
-            Vector3::new(transformed_v4.x, transformed_v4.y, transformed_v4.z) // Convert back to Vector3
-        })
-        .collect();
+            let transformed_v4 = transformation_matrix * v4;
+            *v = Vector3::new(transformed_v4.x, transformed_v4.y, transformed_v4.z);
+        });
 
     let triangles: Vec<Triangle<usize>> = object.indexed_polygon_iter()
         .triangulate()
         .collect();
 
-    let mut obj_data = String::new();
+    let mut obj_data = String::with_capacity(vertices_count * 54);
 
-    // Add object name
     obj_data.push_str("o\n");
 
-    // Add vertices
     for vertex in vertices.iter() {
         obj_data.push_str(&format!("v {:.6} {:.6} {:.6}\n", vertex.x, vertex.y, vertex.z));
     }
 
-    // Add vertex normals (same as vertex positions, since it's a sphere)
     for vertex in vertices.iter() {
         let normal = vertex.normalize();
         obj_data.push_str(&format!("vn {:.6} {:.6} {:.6}\n", normal.x, normal.y, normal.z));
     }
 
-    // Add faces
     for triangle in triangles.iter() {
         let f = triangle.map_vertex(|i| i + 1);
         obj_data.push_str(&format!("f {}//{} {}//{} {}//{}\n", f.x, f.x, f.y, f.y, f.z, f.z));
