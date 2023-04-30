@@ -6,6 +6,7 @@ use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
 
+use ansi_term::Style;
 use cgmath::{InnerSpace, Matrix4, Rad, Vector3, Vector4, VectorSpace};
 use codec::Encode;
 use genmesh::{MapVertex, Triangle, Triangulate};
@@ -22,7 +23,7 @@ use super::MiningContext;
 use super::P3dParams;
 use super::rpc::MiningParams;
 
-const ASK_MINING_PARAMS_PERIOD: Duration = Duration::from_secs(3);
+const ASK_MINING_PARAMS_PERIOD: Duration = Duration::from_secs(10);
 
 #[derive(Encode)]
 pub struct DoubleHash {
@@ -80,8 +81,7 @@ pub(crate) fn worker(ctx: &MiningContext) {
         let MiningParams {
             pre_hash,
             parent_hash,
-            win_dfclty,
-            pow_dfclty,
+            pow_difficulty,
             ..
         } = mining_params;
         let pre = parent_hash.encode()[0..4].try_into().ok();
@@ -105,7 +105,7 @@ pub(crate) fn worker(ctx: &MiningContext) {
         let poscan_hash = DoubleHash { pre_hash, obj_hash }.calc_hash();
 
         let comp = Compute {
-            difficulty: pow_dfclty,
+            difficulty: pow_difficulty,
             pre_hash,
             poscan_hash,
         };
@@ -129,7 +129,7 @@ pub(crate) fn worker(ctx: &MiningContext) {
 
         let diff = get_hash_difficulty(&comp.get_work());
 
-        if diff >= pow_dfclty {
+        if diff >= pow_difficulty {
             let prop = MiningProposal {
                 params: mining_params.clone(),
                 hash: obj_hash,
@@ -137,18 +137,7 @@ pub(crate) fn worker(ctx: &MiningContext) {
                 obj: mining_obj.obj.clone(),
             };
             ctx.push_to_queue(prop);
-            println!("💎 Hash meets pow difficulty: {} > {}", &diff, &pow_dfclty);
-        }
-
-        if diff >= win_dfclty {
-            let prop = MiningProposal {
-                params: mining_params.clone(),
-                hash: obj_hash,
-                obj_id: mining_obj.obj_id,
-                obj: mining_obj.obj,
-            };
-            ctx.push_to_queue(prop);
-            println!("🔥💎 Hash meets win difficulty: {} > {}", &diff, &win_dfclty);
+            println!("💎 Hash > Pool Difficulty: {} > {}", Style::new().bold().paint(format!("{:.2}", &diff)), &pow_difficulty);
         }
     }
 }
@@ -208,10 +197,10 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
             if ema_iterations_per_second > 0.0 {
                 // println a table with speed and bad objects percentage
                 println!(
-                    "⏱️  Speed: {:.2} it/s, {:.2}% bad objects, {:.2}% dupe objects",
-                    ema_iterations_per_second,
-                    ema_bad_objects_per_second / ema_iterations_per_second * 100.0,
-                    ema_dupe_objects_per_second / ema_iterations_per_second * 100.0,
+                    "⏱️  Speed: {} it/s, {} bad objects, {} dupe objects",
+                    Style::new().bold().paint(format!("{:.2}", ema_iterations_per_second)),
+                    Style::new().bold().paint(format!("{:.2}%", ema_bad_objects_per_second / ema_iterations_per_second * 100.0)),
+                    Style::new().bold().paint(format!("{:.2}%", ema_dupe_objects_per_second / ema_iterations_per_second * 100.0)),
                 );
             }
 

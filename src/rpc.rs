@@ -23,8 +23,7 @@ const LISTEN_ADDR: &str = "127.0.0.1:9833";
 pub(crate) struct MiningParams {
     pub(crate) pre_hash: H256,
     pub(crate) parent_hash: H256,
-    pub(crate) win_dfclty: U256,
-    pub(crate) pow_dfclty: U256,
+    pub(crate) pow_difficulty: U256,
     pub(crate) pub_key: ecies_ed25519::PublicKey,
 }
 
@@ -183,22 +182,19 @@ impl MiningContext {
 
         let pre_hash: Option<&str> = response.get(0).expect("Expect pre_hash").as_str();
         let parent_hash: Option<&str> = response.get(1).expect("Expect parent_hash").as_str();
-        let win_dfclty: Option<&str> = response.get(2).expect("Expect win_difficulty").as_str();
-        let pow_dfclty: Option<&str> = response.get(3).expect("Expect pow_difficulty").as_str();
+        let pow_difficulty: Option<&str> = response.get(3).expect("Expect pow_difficulty").as_str();
         let pub_key: Option<&str> = response.get(4).expect("public key").as_str();
 
-        match (pre_hash, parent_hash, win_dfclty, pow_dfclty, pub_key) {
+        match (pre_hash, parent_hash, pow_difficulty, pub_key) {
             (
                 Some(pre_hash),
                 Some(parent_hash),
-                Some(win_dfclty),
-                Some(pow_dfclty),
+                Some(pow_difficulty),
                 Some(pub_key),
             ) => {
                 let pre_hash = H256::from_str(pre_hash).unwrap();
                 let parent_hash = H256::from_str(parent_hash).unwrap();
-                let win_dfclty = U256::from_str_radix(win_dfclty, 16).unwrap();
-                let pow_dfclty = U256::from_str_radix(pow_dfclty, 16).unwrap();
+                let pow_difficulty = U256::from_str_radix(pow_difficulty, 16).unwrap();
                 let pub_key = U256::from_str_radix(pub_key, 16).unwrap();
                 let mut pub_key = pub_key.encode();
                 pub_key.reverse();
@@ -208,11 +204,10 @@ impl MiningContext {
                 (*lock) = Some(MiningParams {
                     pre_hash,
                     parent_hash,
-                    pow_dfclty,
-                    win_dfclty,
+                    pow_difficulty: pow_difficulty,
                     pub_key,
                 });
-                println!("Mining params applied. Pow difficulty: {}, pre_hash: {}, parent_hash: {}", pow_dfclty, pre_hash, parent_hash);
+                println!("Mining params applied. Pow difficulty: {}, pre_hash: {}, parent_hash: {}", pow_difficulty, pre_hash, parent_hash);
             }
             _ => {
                 println!("🟥 Ask_mining_params error: Incorrect response from poll node");
@@ -230,7 +225,7 @@ impl MiningContext {
             pre_hash: proposal.params.pre_hash,
             parent_hash: proposal.params.parent_hash,
             algo: self.p3d_params.algo.as_str().into(),
-            dfclty: proposal.params.pow_dfclty,
+            dfclty: proposal.params.pow_difficulty,
             hash: proposal.hash,
             obj_id: proposal.obj_id,
             obj: proposal.obj,
