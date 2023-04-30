@@ -194,15 +194,12 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
             ema_bad_objects_per_second = alpha * bad_objects_per_second + (1.0 - alpha) * ema_bad_objects_per_second;
             ema_dupe_objects_per_second = alpha * dupe_objects_per_second + (1.0 - alpha) * ema_dupe_objects_per_second;
 
-            if ema_iterations_per_second > 0.0 {
-                // println a table with speed and bad objects percentage
-                println!(
-                    "⏱️  Speed: {} it/s, {} bad objects, {} dupe objects",
-                    Style::new().bold().paint(format!("{:.2}", ema_iterations_per_second)),
-                    Style::new().bold().paint(format!("{:.2}%", ema_bad_objects_per_second / ema_iterations_per_second * 100.0)),
-                    Style::new().bold().paint(format!("{:.2}%", ema_dupe_objects_per_second / ema_iterations_per_second * 100.0)),
-                );
-            }
+            println!(
+                "⏱️  Speed: {} it/s, {} bad objects, {} dupe objects",
+                Style::new().bold().paint(format!("{:.2}", ema_iterations_per_second)),
+                Style::new().bold().paint(format!("{:.2}%", ema_bad_objects_per_second / ema_iterations_per_second * 100.0)),
+                Style::new().bold().paint(format!("{:.2}%", ema_dupe_objects_per_second / ema_iterations_per_second * 100.0)),
+            );
 
             prev_iterations = current_iterations;
             prev_bad_objects = current_bad_objects;
