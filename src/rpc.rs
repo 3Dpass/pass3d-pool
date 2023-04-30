@@ -1,23 +1,18 @@
 use std::collections::vec_deque::VecDeque;
-use std::net::SocketAddr;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicUsize;
 
 use codec::Encode;
 use ecies_ed25519::encrypt;
-use jsonrpsee::{rpc_params, RpcModule};
-use jsonrpsee::core::{Error, JsonValue};
 use jsonrpsee::core::client::ClientT;
+use jsonrpsee::core::JsonValue;
 use jsonrpsee::http_client::{HttpClient, HttpClientBuilder};
-use jsonrpsee::server::ServerBuilder;
-use jsonrpsee::types::Params;
+use jsonrpsee::rpc_params;
 use primitive_types::{H256, U256};
 use rand::{rngs::StdRng, SeedableRng};
 use schnorrkel::{ExpansionMode, MiniSecretKey, SecretKey, Signature};
 use serde::Serialize;
-
-const LISTEN_ADDR: &str = "127.0.0.1:9833";
 
 #[derive(Clone)]
 pub(crate) struct MiningParams {
@@ -107,7 +102,6 @@ pub(crate) struct MiningContext {
     pub(crate) member_id: String,
     pub(crate) key: SecretKey,
     pub(crate) cur_state: Mutex<Option<MiningParams>>,
-    pub(crate) in_queue: Mutex<VecDeque<MiningObj>>,
     pub(crate) out_queue: Mutex<VecDeque<MiningProposal>>,
     pub(crate) iterations_count: Arc<AtomicUsize>,
     pub(crate) bad_objects: Arc<AtomicUsize>,
@@ -137,7 +131,6 @@ impl MiningContext {
             member_id,
             key,
             cur_state: Mutex::new(None),
-            in_queue: Mutex::new(VecDeque::new()),
             out_queue: Mutex::new(VecDeque::new()),
             iterations_count: Arc::new(AtomicUsize::new(0)),
             bad_objects: Arc::new(AtomicUsize::new(0)),
@@ -145,23 +138,6 @@ impl MiningContext {
             seen_objects: Mutex::new(std::collections::HashSet::new()),
             client: HttpClientBuilder::default().build(pool_addr)?,
         })
-    }
-
-    pub(crate) fn on_new_object<C>(
-        &self,
-        params: Params<'_>,
-        _ctx: &C,
-    ) -> Result<JsonValue, Error> {
-        let data: JsonValue = params.parse().unwrap();
-        let obj_id = data.get(0).unwrap().as_u64().unwrap();
-        let obj = data.get(1).unwrap().as_str().unwrap();
-        let mining_obj = MiningObj {
-            obj: obj.as_bytes().to_vec(),
-            obj_id,
-        };
-        let mut lock = self.in_queue.lock().unwrap();
-        (*lock).push_back(mining_obj);
-        Ok(serde_json::json!(0))
     }
 
     pub(crate) fn push_to_queue(&self, prosal: MiningProposal) {
@@ -254,21 +230,4 @@ impl MiningContext {
         const CTX: &[u8] = b"Mining pool";
         self.key.sign_simple(CTX, msg, &self.key.to_public())
     }
-}
-
-pub(crate) async fn run_server(ctx: Arc<MiningContext>) -> anyhow::Result<SocketAddr> {
-    let server = ServerBuilder::default().build(LISTEN_ADDR).await?;
-    let mut module = RpcModule::new(());
-    let ctx = ctx.clone();
-    module.register_method("poscan_pushMiningObject", move |p, c| {
-        ctx.on_new_object(p, c)
-    })?;
-    let addr = server.local_addr()?;
-    let handle = server.start(module)?;
-
-    tokio::spawn(handle.stopped());
-
-    println!("🚀 Server listening on {}", LISTEN_ADDR);
-
-    Ok(addr)
 }

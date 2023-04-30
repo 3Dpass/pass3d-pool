@@ -82,14 +82,11 @@ async fn main() -> anyhow::Result<()> {
             let p3d_params = P3dParams::new(opt.algo.as_str());
             let ctx = MiningContext::new(p3d_params, opt.url.as_str(), opt.pool_id, opt.member_id, opt.key)?;
             let ctx = Arc::new(ctx);
-            let _addr = rpc::run_server(ctx.clone()).await?;
-            let ctx_clone = ctx.clone();
-            tokio::spawn(worker::node_client(ctx_clone));
+            tokio::spawn(worker::node_client(ctx.clone()));
 
             for _ in 0..opt.threads.unwrap_or(1) {
                 let ctx = ctx.clone();
                 thread::spawn(move || {
-                    // Process each socket concurrently.
                     worker::worker(&ctx);
                 });
             }
