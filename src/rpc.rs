@@ -111,6 +111,7 @@ pub(crate) struct MiningContext {
     pub(crate) in_queue: Mutex<VecDeque<MiningObj>>,
     pub(crate) out_queue: Mutex<VecDeque<MiningProposal>>,
     pub(crate) iterations_count: Arc<AtomicUsize>,
+    pub(crate) bad_objects: Arc<AtomicUsize>,
 
     pub(crate) client: HttpClient,
 }
@@ -138,6 +139,7 @@ impl MiningContext {
             in_queue: Mutex::new(VecDeque::new()),
             out_queue: Mutex::new(VecDeque::new()),
             iterations_count: Arc::new(AtomicUsize::new(0)),
+            bad_objects: Arc::new(AtomicUsize::new(0)),
             client: HttpClientBuilder::default().build(pool_addr)?,
         })
     }

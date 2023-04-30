@@ -22,7 +22,7 @@ use super::MiningContext;
 use super::P3dParams;
 use super::rpc::MiningParams;
 
-const ASK_MINING_PARAMS_PERIOD: Duration = Duration::from_secs(10);
+const ASK_MINING_PARAMS_PERIOD: Duration = Duration::from_secs(3);
 
 #[derive(Encode)]
 pub struct DoubleHash {
@@ -102,8 +102,10 @@ pub(crate) fn worker(ctx: &MiningContext) {
         let first_hash = &res_hashes.unwrap()[0];
         let obj_hash = H256::from_str(first_hash).unwrap();
 
+        // This code is for debug purposes only. Will show if zero-contour object is found.
         if first_hash == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" {
-            println!("🟥 Zero-contour object found");
+            ctx.bad_objects.fetch_add(1, Ordering::Relaxed);
+            // println!("🟥 Zero-contour object found");
             // DEBUG: write mining_obj.obj to file in /tmp/objects/{random_name}.obj
             // use std::fs::File;
             // use std::io::Write;
@@ -169,6 +171,8 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
 
         let mut prev_iterations: usize = 0;
         let mut ema_iterations_per_second: f64 = 0.0;
+        let mut prev_bad_objects: usize = 0;
+        let mut ema_bad_objects_per_second: f64 = 0.0;
         // EMA smoothing factor between 0 and 1; higher value means more smoothing
         let alpha: f64 = 0.8;
 
@@ -177,16 +181,28 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
 
             let current_iterations = ctx.iterations_count.load(Ordering::Relaxed);
             let diff_iterations = current_iterations - prev_iterations;
+            let current_bad_objects = ctx.bad_objects.load(Ordering::Relaxed);
+            let diff_bad_objects = current_bad_objects - prev_bad_objects;
 
             let duration_in_seconds = ASK_MINING_PARAMS_PERIOD.as_secs_f64();
             let iterations_per_second = diff_iterations as f64 / duration_in_seconds;
+            let bad_objects_per_second = diff_bad_objects as f64 / duration_in_seconds;
 
             // Update exponential moving average
             ema_iterations_per_second = alpha * iterations_per_second + (1.0 - alpha) * ema_iterations_per_second;
+            ema_bad_objects_per_second = alpha * bad_objects_per_second + (1.0 - alpha) * ema_bad_objects_per_second;
 
-            println!("⛏️  Speed: {:.2?} obj/s", ema_iterations_per_second);
+            if ema_iterations_per_second > 0.0 {
+                // println a table with speed and bad objects percentage
+                println!(
+                    "⏱️  Speed: {:.2} it/s, {:.2}% bad objects",
+                    ema_iterations_per_second,
+                    ema_bad_objects_per_second / ema_iterations_per_second * 100.0
+                );
+            }
 
             prev_iterations = current_iterations;
+            prev_bad_objects = current_bad_objects;
 
             let res = ctx.ask_mining_params().await;
             if let Err(e) = res {
@@ -197,10 +213,10 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
 }
 
 pub fn create_mining_obj() -> Vec<u8> {
-    let dents_count = 24;
-    let dent_size: f32 = 0.2;
+    let dents_count = 8;
+    let dent_size: f32 = 0.3;
 
-    let object = SphereUv::new(19, 13);
+    let object = SphereUv::new(14, 12);
 
     let mut vertices: Vec<Vector3<f32>> = object.shared_vertex_iter()
         .map(|v| v.pos.into())
