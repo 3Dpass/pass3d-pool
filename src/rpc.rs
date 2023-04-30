@@ -112,6 +112,8 @@ pub(crate) struct MiningContext {
     pub(crate) out_queue: Mutex<VecDeque<MiningProposal>>,
     pub(crate) iterations_count: Arc<AtomicUsize>,
     pub(crate) bad_objects: Arc<AtomicUsize>,
+    pub(crate) dupe_objects: Arc<AtomicUsize>,
+    pub(crate) seen_objects: Mutex<std::collections::HashSet<H256>>,
 
     pub(crate) client: HttpClient,
 }
@@ -140,6 +142,8 @@ impl MiningContext {
             out_queue: Mutex::new(VecDeque::new()),
             iterations_count: Arc::new(AtomicUsize::new(0)),
             bad_objects: Arc::new(AtomicUsize::new(0)),
+            dupe_objects: Arc::new(AtomicUsize::new(0)),
+            seen_objects: Mutex::new(std::collections::HashSet::new()),
             client: HttpClientBuilder::default().build(pool_addr)?,
         })
     }

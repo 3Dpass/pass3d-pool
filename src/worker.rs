@@ -102,7 +102,15 @@ pub(crate) fn worker(ctx: &MiningContext) {
         let first_hash = &res_hashes.unwrap()[0];
         let obj_hash = H256::from_str(first_hash).unwrap();
 
-        // This code is for debug purposes only. Will show if zero-contour object is found.
+        let poscan_hash = DoubleHash { pre_hash, obj_hash }.calc_hash();
+
+        let comp = Compute {
+            difficulty: pow_dfclty,
+            pre_hash,
+            poscan_hash,
+        };
+
+        ctx.iterations_count.fetch_add(1, Ordering::Relaxed);
         if first_hash == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" {
             ctx.bad_objects.fetch_add(1, Ordering::Relaxed);
             // println!("🟥 Zero-contour object found");
@@ -113,14 +121,11 @@ pub(crate) fn worker(ctx: &MiningContext) {
             // file.write_all(mining_obj.obj.as_slice()).unwrap();
         }
 
-        let poscan_hash = DoubleHash { pre_hash, obj_hash }.calc_hash();
-
-        let comp = Compute {
-            difficulty: pow_dfclty,
-            pre_hash,
-            poscan_hash,
-        };
-        ctx.iterations_count.fetch_add(1, Ordering::Relaxed);
+        let mut lock = ctx.seen_objects.lock().unwrap();
+        if !(*lock).insert(obj_hash.clone()) {
+            ctx.dupe_objects.fetch_add(1, Ordering::Relaxed);
+            continue;
+        }
 
         let diff = get_hash_difficulty(&comp.get_work());
 
@@ -173,6 +178,8 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
         let mut ema_iterations_per_second: f64 = 0.0;
         let mut prev_bad_objects: usize = 0;
         let mut ema_bad_objects_per_second: f64 = 0.0;
+        let mut prev_dupe_objects: usize = 0;
+        let mut ema_dupe_objects_per_second: f64 = 0.0;
         // EMA smoothing factor between 0 and 1; higher value means more smoothing
         let alpha: f64 = 0.8;
 
@@ -181,28 +188,36 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
 
             let current_iterations = ctx.iterations_count.load(Ordering::Relaxed);
             let diff_iterations = current_iterations - prev_iterations;
+
             let current_bad_objects = ctx.bad_objects.load(Ordering::Relaxed);
             let diff_bad_objects = current_bad_objects - prev_bad_objects;
+
+            let current_dupe_objects = ctx.dupe_objects.load(Ordering::Relaxed);
+            let diff_dupe_objects = current_dupe_objects - prev_dupe_objects;
 
             let duration_in_seconds = ASK_MINING_PARAMS_PERIOD.as_secs_f64();
             let iterations_per_second = diff_iterations as f64 / duration_in_seconds;
             let bad_objects_per_second = diff_bad_objects as f64 / duration_in_seconds;
+            let dupe_objects_per_second = diff_dupe_objects as f64 / duration_in_seconds;
 
             // Update exponential moving average
             ema_iterations_per_second = alpha * iterations_per_second + (1.0 - alpha) * ema_iterations_per_second;
             ema_bad_objects_per_second = alpha * bad_objects_per_second + (1.0 - alpha) * ema_bad_objects_per_second;
+            ema_dupe_objects_per_second = alpha * dupe_objects_per_second + (1.0 - alpha) * ema_dupe_objects_per_second;
 
             if ema_iterations_per_second > 0.0 {
                 // println a table with speed and bad objects percentage
                 println!(
-                    "⏱️  Speed: {:.2} it/s, {:.2}% bad objects",
+                    "⏱️  Speed: {:.2} it/s, {:.2}% bad objects, {:.2}% dupe objects",
                     ema_iterations_per_second,
-                    ema_bad_objects_per_second / ema_iterations_per_second * 100.0
+                    ema_bad_objects_per_second / ema_iterations_per_second * 100.0,
+                    ema_dupe_objects_per_second / ema_iterations_per_second * 100.0,
                 );
             }
 
             prev_iterations = current_iterations;
             prev_bad_objects = current_bad_objects;
+            prev_dupe_objects = current_dupe_objects;
 
             let res = ctx.ask_mining_params().await;
             if let Err(e) = res {
@@ -213,10 +228,10 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
 }
 
 pub fn create_mining_obj() -> Vec<u8> {
-    let dents_count = 8;
-    let dent_size: f32 = 0.3;
+    let dents_count = 24;
+    let dent_size: f32 = 0.2;
 
-    let object = SphereUv::new(14, 12);
+    let object = SphereUv::new(14, 13);
 
     let mut vertices: Vec<Vector3<f32>> = object.shared_vertex_iter()
         .map(|v| v.pos.into())
