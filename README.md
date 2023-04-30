@@ -40,8 +40,3 @@ Inspect a seed phrase to get the private key:
 ```
 ./target/release/pass3d-pool --help
 ```
-## Start mining
-Install the [official miner](https://github.com/3Dpass/miner). You can also use your own modified miner instead. Set up the `port 9833` for the objects to send and run the miner like this:
-```
-bun miner.js --host 127.0.0.1 --port 9833
-```
