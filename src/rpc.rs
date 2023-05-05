@@ -140,9 +140,9 @@ impl MiningContext {
         })
     }
 
-    pub(crate) fn push_to_queue(&self, prosal: MiningProposal) {
+    pub(crate) fn push_to_queue(&self, proposal: MiningProposal) {
         let mut lock = self.out_queue.lock().unwrap();
-        (*lock).push_back(prosal);
+        (*lock).push_back(proposal);
     }
 
     pub(crate) async fn ask_mining_params(&self) -> anyhow::Result<()> {
