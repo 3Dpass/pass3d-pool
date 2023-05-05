@@ -18,6 +18,7 @@ use serde::Serialize;
 pub(crate) struct MiningParams {
     pub(crate) pre_hash: H256,
     pub(crate) parent_hash: H256,
+    pub(crate) win_difficulty: U256,
     pub(crate) pow_difficulty: U256,
     pub(crate) pub_key: ecies_ed25519::PublicKey,
 }
@@ -156,18 +157,21 @@ impl MiningContext {
 
         let pre_hash: Option<&str> = response.get(0).expect("Expect pre_hash").as_str();
         let parent_hash: Option<&str> = response.get(1).expect("Expect parent_hash").as_str();
+        let win_difficulty: Option<&str> = response.get(2).expect("Expect pow_difficulty").as_str();
         let pow_difficulty: Option<&str> = response.get(3).expect("Expect pow_difficulty").as_str();
         let pub_key: Option<&str> = response.get(4).expect("public key").as_str();
 
-        match (pre_hash, parent_hash, pow_difficulty, pub_key) {
+        match (pre_hash, parent_hash, win_difficulty, pow_difficulty, pub_key) {
             (
                 Some(pre_hash),
                 Some(parent_hash),
+                Some(win_difficulty),
                 Some(pow_difficulty),
                 Some(pub_key),
             ) => {
                 let pre_hash = H256::from_str(pre_hash).unwrap();
                 let parent_hash = H256::from_str(parent_hash).unwrap();
+                let win_difficulty = U256::from_str_radix(win_difficulty, 16).unwrap();
                 let pow_difficulty = U256::from_str_radix(pow_difficulty, 16).unwrap();
                 let pub_key = U256::from_str_radix(pub_key, 16).unwrap();
                 let mut pub_key = pub_key.encode();
@@ -178,6 +182,7 @@ impl MiningContext {
                 (*lock) = Some(MiningParams {
                     pre_hash,
                     parent_hash,
+                    win_difficulty,
                     pow_difficulty,
                     pub_key,
                 });

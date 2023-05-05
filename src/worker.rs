@@ -73,25 +73,26 @@ pub(crate) fn worker(ctx: &MiningContext) {
             }
         };
 
+        let MiningParams {
+            pre_hash,
+            parent_hash,
+            win_difficulty,
+            pow_difficulty,
+            ..
+        } = mining_params;
+        let rot = parent_hash.encode()[0..4].try_into().ok();
+
         let mining_obj: MiningObj = MiningObj {
             obj_id: 1,
             obj: create_mining_obj(),
         };
-
-        let MiningParams {
-            pre_hash,
-            parent_hash,
-            pow_difficulty,
-            ..
-        } = mining_params;
-        let pre = parent_hash.encode()[0..4].try_into().ok();
 
         let res_hashes = p3d_process(
             mining_obj.obj.as_slice(),
             algo.as_p3d_algo(),
             grid as i16,
             sect as i16,
-            pre,
+            rot,
         );
 
         // check if Result is Ok and if it contains at least one hash, otherwise continue
@@ -137,7 +138,11 @@ pub(crate) fn worker(ctx: &MiningContext) {
                 obj: mining_obj.obj.clone(),
             };
             ctx.push_to_queue(prop);
-            println!("💎 Hash > Pool Difficulty: {} > {}", Style::new().bold().paint(format!("{:.2}", &diff)), &pow_difficulty);
+            println!("💎 Hash > Pool Difficulty: {} > {} (win: {})",
+                     Style::new().bold().paint(format!("{:.2}", &diff)),
+                     &pow_difficulty,
+                     &win_difficulty,
+            );
         }
     }
 }
