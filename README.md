@@ -23,7 +23,7 @@ cargo build --release
 ```
 ## Run
 ```
-./target/release/pass3d-pool run --algo grid2d_v2 --pool-id <POOL's P3D ADDRESS> --url http://1.2.3.4:9933 --member-id <MINER'S P3D ADDRESS> --key <MINER's PRIVATE KEY> --threads 32
+./target/release/pass3d-pool run --algo grid2d_v3 --pool-id <POOL's P3D ADDRESS> --url http://1.2.3.4:9933 --member-id <MINER'S P3D ADDRESS> --key <MINER's PRIVATE KEY> --threads 32
 ```
 - `--threads` is the amount of threads being exploited for 3D objects handling
 - `--url` is the pool server ip/host to connect to
