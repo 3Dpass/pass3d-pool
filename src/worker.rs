@@ -275,20 +275,20 @@ pub fn create_mining_obj() -> Vec<u8> {
 
     let mut obj_data = String::with_capacity(vertices_count * 54);
 
-    write!(obj_data, "o\n").unwrap();
+    writeln!(obj_data, "o\n").unwrap();
 
     for vertex in vertices.iter() {
-        write!(obj_data, "v {:.6} {:.6} {:.6}\n", vertex.x, vertex.y, vertex.z).unwrap();
+        writeln!(obj_data, "v {:.6} {:.6} {:.6}\n", vertex.x, vertex.y, vertex.z).unwrap();
     }
 
     for vertex in vertices.iter() {
         let normal = vertex.normalize();
-        write!(obj_data, "vn {:.6} {:.6} {:.6}\n", normal.x, normal.y, normal.z).unwrap();
+        writeln!(obj_data, "vn {:.6} {:.6} {:.6}\n", normal.x, normal.y, normal.z).unwrap();
     }
 
     for triangle in triangles.iter() {
         let f = triangle.map_vertex(|i| i + 1);
-        write!(obj_data, "f {}//{} {}//{} {}//{}\n", f.x, f.x, f.y, f.y, f.z, f.z).unwrap();
+        writeln!(obj_data, "f {}//{} {}//{} {}//{}\n", f.x, f.x, f.y, f.y, f.z, f.z).unwrap();
     }
 
     obj_data.into_bytes()
