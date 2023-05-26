@@ -1,10 +1,11 @@
 [package]
 name = "pass3d-pool"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["3Dpass"]
 edition = "2021"
 
 [dependencies]
+rayon = "1.5.1"
 structopt = "0.3.13"
 anyhow = "1"
 serde = { version = "1.0", default-features = false }

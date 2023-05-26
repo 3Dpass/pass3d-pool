@@ -28,6 +28,7 @@ pub(crate) enum AlgoType {
     Grid2d,
     Grid2dV2,
     Grid2dV3,
+    Grid2dV3_1,
 }
 
 impl AlgoType {
@@ -35,7 +36,8 @@ impl AlgoType {
         match self {
             Self::Grid2d => p3d::AlgoType::Grid2d,
             Self::Grid2dV2 => p3d::AlgoType::Grid2dV2,
-            Self::Grid2dV3 => p3d::AlgoType::Grid2dV3,
+            Self::Grid2dV3 |
+            Self::Grid2dV3_1 => p3d::AlgoType::Grid2dV3,
         }
     }
 
@@ -44,6 +46,7 @@ impl AlgoType {
             Self::Grid2d => "Grid2d",
             Self::Grid2dV2 => "Grid2dV2",
             Self::Grid2dV3 => "Grid2dV3",
+            Self::Grid2dV3_1 => "Grid2dV3.1",
         }
     }
 }
@@ -58,14 +61,12 @@ pub(crate) struct P3dParams {
 impl P3dParams {
     pub(crate) fn new(ver: &str) -> Self {
         let grid = 8;
-        let (algo, sect) = if ver == "grid2d" {
-            (AlgoType::Grid2d, 66)
-        } else if ver == "grid2d_v2" {
-            (AlgoType::Grid2dV2, 12)
-        } else if ver == "grid2d_v3" {
-            (AlgoType::Grid2dV3, 12)
-        } else {
-            panic!("Unknown algorithm: {}", ver)
+        let (algo, sect) = match ver {
+            "grid2d" => (AlgoType::Grid2d, 66),
+            "grid2d_v2" => (AlgoType::Grid2dV2, 12),
+            "grid2d_v3" => (AlgoType::Grid2dV3, 12),
+            "grid2d_v3.1" => (AlgoType::Grid2dV3_1, 12),
+            _ => panic!("Unknown algorithm: {}", ver),
         };
 
         Self { algo, grid, sect }
