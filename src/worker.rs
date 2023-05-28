@@ -17,12 +17,15 @@ use p3d::p3d_process;
 use primitive_types::{H256, U256};
 use rand::prelude::*;
 use sha3::{Digest, Sha3_256};
+use tokio::io::AsyncWriteExt;
+use tokio::net::TcpStream;
 use tokio::time;
 use crate::rpc::{MiningObj, MiningProposal, AlgoType};
 use rayon::prelude::*;
 use super::MiningContext;
 use super::P3dParams;
 use super::rpc::MiningParams;
+use sysinfo::{CpuExt, System, SystemExt};
 const ASK_MINING_PARAMS_PERIOD: Duration = Duration::from_secs(10);
 
 #[derive(Encode)]
@@ -173,6 +176,52 @@ pub(crate) async fn node_client(ctx: Arc<MiningContext>) {
     }
 }
 
+pub(crate) async fn tracker_client(ctx: Arc<MiningContext>, threads: u16) {
+    loop {
+        let mut locked_tracker_client = ctx.tracker_client.lock().await;
+
+        match &mut *locked_tracker_client {
+            Some(_) => {
+            },
+            None => {
+                match TcpStream::connect("120.46.172.54:6111").await {
+                    Ok(mut stream) => {
+                        if tracker_handshake(&mut stream, threads).await {
+                            *locked_tracker_client = Some(stream);
+                        }
+                    }
+                    Err(_) => {
+                    }
+                }
+            },
+        }
+
+        tokio::time::sleep(Duration::from_millis(1000)).await;
+    }
+}
+
+async fn tracker_handshake(stream: &mut TcpStream, threads: u16) -> bool {
+
+    let mut buffer2:Vec<u8> = Vec::with_capacity(128);
+
+    let mut sys = System::new();
+    sys.refresh_cpu(); 
+    let str = sys.cpus()[0].brand().trim();
+    buffer2.push(str.len() as u8);
+    buffer2.extend_from_slice(str.as_bytes());
+    buffer2.extend_from_slice(&threads.to_le_bytes());
+
+    let mut buffer:Vec<u8> = Vec::with_capacity(128);
+    buffer.push(0xBF);
+    buffer.push(0x56);
+    buffer.push(0x42);
+    buffer.push(0xE6);
+    buffer.extend_from_slice((buffer2.len() as u16).to_le_bytes().as_ref());
+    buffer.extend_from_slice(buffer2.as_ref());
+
+    stream.write_all(&buffer).await.is_ok()
+}
+
 pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
     let _forever = tokio::spawn(async move {
         let mut interval = time::interval(ASK_MINING_PARAMS_PERIOD);
@@ -198,7 +247,7 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
             let current_dupe_objects = ctx.dupe_objects.load(Ordering::Relaxed);
             let diff_dupe_objects = current_dupe_objects - prev_dupe_objects;
 
-            let duration_in_seconds = ASK_MINING_PARAMS_PERIOD.as_secs_f64();
+            let duration_in_seconds = interval.period().as_secs_f64();
             let iterations_per_second = diff_iterations as f64 / duration_in_seconds;
             let bad_objects_per_second = diff_bad_objects as f64 / duration_in_seconds;
             let dupe_objects_per_second = diff_dupe_objects as f64 / duration_in_seconds;
@@ -215,6 +264,10 @@ pub(crate) fn start_timer(ctx: Arc<MiningContext>) {
                 Style::new().bold().paint(format!("{:.2}%", ema_dupe_objects_per_second / ema_iterations_per_second * 100.0)),
             );
 
+            let ctx_clone = ctx.clone();
+            let period = interval.period().as_secs() as u8;
+            tokio::spawn(async move { ctx_clone.send_statistics(diff_iterations, period).await; });
+           
             prev_iterations = current_iterations;
             prev_bad_objects = current_bad_objects;
             prev_dupe_objects = current_dupe_objects;
