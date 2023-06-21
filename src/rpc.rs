@@ -13,6 +13,8 @@ use primitive_types::{H256, U256};
 use rand::{rngs::StdRng, SeedableRng};
 use schnorrkel::{ExpansionMode, MiniSecretKey, SecretKey, Signature};
 use serde::Serialize;
+use tokio::io::AsyncWriteExt;
+use tokio::net::TcpStream;
 
 #[derive(Clone)]
 pub(crate) struct MiningParams {
@@ -111,6 +113,7 @@ pub(crate) struct MiningContext {
     pub(crate) seen_objects: Mutex<std::collections::HashSet<H256>>,
 
     pub(crate) client: HttpClient,
+    pub(crate) tracker_client: tokio::sync::Mutex<Option<TcpStream>>,
 }
 
 impl MiningContext {
@@ -139,6 +142,7 @@ impl MiningContext {
             dupe_objects: Arc::new(AtomicUsize::new(0)),
             seen_objects: Mutex::new(std::collections::HashSet::new()),
             client: HttpClientBuilder::default().build(pool_addr)?,
+            tracker_client: tokio::sync::Mutex::new(None),
         })
     }
 
@@ -232,5 +236,24 @@ impl MiningContext {
     fn sign(&self, msg: &[u8]) -> Signature {
         const CTX: &[u8] = b"Mining pool";
         self.key.sign_simple(CTX, msg, &self.key.to_public())
+    }
+
+    pub(crate) async fn send_statistics(&self, diff_iterations: usize, period: u8){
+        let mut locked_tracker_client = self.tracker_client.lock().await;
+
+        match &mut *locked_tracker_client {
+            Some(stream) => {
+
+                let mut buffer:Vec<u8> = Vec::with_capacity(5);
+                buffer.extend_from_slice((diff_iterations as u32).to_le_bytes().as_ref());
+                buffer.push(period as u8);
+            
+                if !stream.write_all(&buffer).await.is_ok() {
+                    *locked_tracker_client = Option::None;
+                }
+            },
+            None => {
+            },
+        }
     }
 }

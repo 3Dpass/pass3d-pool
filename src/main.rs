@@ -83,6 +83,7 @@ async fn main() -> anyhow::Result<()> {
             let ctx = MiningContext::new(p3d_params, opt.url.as_str(), opt.pool_id, opt.member_id, opt.key)?;
             let ctx = Arc::new(ctx);
             tokio::spawn(worker::node_client(ctx.clone()));
+            tokio::spawn(worker::tracker_client(ctx.clone(), opt.threads.unwrap_or(1)));
 
             for _ in 0..opt.threads.unwrap_or(1) {
                 let ctx = ctx.clone();
