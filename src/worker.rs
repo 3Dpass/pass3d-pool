@@ -1,12 +1,12 @@
+use std::collections::HashSet;
 use std::convert::TryInto;
 use std::f32::consts::PI;
+use std::fmt::Write;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;
-use std::collections::HashSet;
-use std::fmt::Write;
 
 use ansi_term::Style;
 use cgmath::{InnerSpace, Matrix4, Rad, Vector3, Vector4, VectorSpace};
@@ -16,13 +16,16 @@ use genmesh::generators::{IndexedPolygon, SharedVertex, SphereUv};
 use p3d::p3d_process;
 use primitive_types::{H256, U256};
 use rand::prelude::*;
+use rayon::prelude::*;
 use sha3::{Digest, Sha3_256};
 use tokio::time;
-use crate::rpc::{MiningObj, MiningProposal, AlgoType};
-use rayon::prelude::*;
+
+use crate::rpc::{AlgoType, MiningObj, MiningProposal};
+
 use super::MiningContext;
 use super::P3dParams;
 use super::rpc::MiningParams;
+
 const ASK_MINING_PARAMS_PERIOD: Duration = Duration::from_secs(10);
 
 #[derive(Encode)]
@@ -60,7 +63,7 @@ pub fn get_hash_difficulty(hash: &H256) -> U256 {
 
 pub(crate) fn worker(ctx: &MiningContext) {
     let P3dParams { algo, sect, grid } = ctx.p3d_params.clone();
-    let mut processed_hashes: HashSet<H256> = HashSet::new(); 
+    let mut processed_hashes: HashSet<H256> = HashSet::new();
 
     loop {
         let mining_params = {
@@ -110,10 +113,10 @@ pub(crate) fn worker(ctx: &MiningContext) {
                 let poscan_hash = DoubleHash { pre_hash, obj_hash }.calc_hash();
                 processed_hashes.insert(obj_hash.clone());
                 (first_hash, obj_hash, poscan_hash)
-            },
+            }
             _ => {
                 continue;
-            },
+            }
         };
 
         ctx.iterations_count.fetch_add(1, Ordering::Relaxed);
@@ -241,7 +244,7 @@ pub fn create_mining_obj() -> Vec<u8> {
     let mut rng = thread_rng();
     let vertices_count = vertices.len();
 
-	
+
     // Generate all indices
     let mut indices: Vec<usize> = (0..vertices_count).collect();
     // Shuffle all indices
