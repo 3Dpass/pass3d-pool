@@ -17,6 +17,7 @@ use serde::Serialize;
 #[derive(Clone)]
 pub(crate) struct MiningParams {
     pub(crate) pre_hash: H256,
+    pub(crate) rot: [u8; 4],
     pub(crate) parent_hash: H256,
     pub(crate) win_difficulty: U256,
     pub(crate) pow_difficulty: U256,
@@ -183,9 +184,27 @@ impl MiningContext {
                 pub_key.reverse();
                 let pub_key = ecies_ed25519::PublicKey::from_bytes(&pub_key).unwrap();
 
+                let rot_hash = match self.p3d_params.algo {
+                    AlgoType::Grid2dV3_1 | AlgoType::Grid2dV3a => pre_hash,
+                    _ => parent_hash,
+                };
+
+                let mut r: [u8;32] = rot_hash.encode()[0..32].try_into().unwrap();
+                if matches!(self.p3d_params.algo, AlgoType::Grid2dV3a) {
+                    for a in r[3..].iter() {
+                        // exclude rotation less than 20
+                        if *a > 20 {
+                            r[3] = a.clone();
+                            break;
+                        }
+                    }
+                }
+                let rot: [u8; 4] = r[0..4].try_into().unwrap();
+
                 let mut lock = self.cur_state.lock().unwrap();
                 (*lock) = Some(MiningParams {
                     pre_hash,
+                    rot,
                     parent_hash,
                     win_difficulty,
                     pow_difficulty,

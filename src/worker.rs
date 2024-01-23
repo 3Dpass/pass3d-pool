@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::convert::TryInto;
 use std::f32::consts::PI;
 use std::fmt::Write;
 use std::str::FromStr;
@@ -20,7 +19,7 @@ use rayon::prelude::*;
 use sha3::{Digest, Sha3_256};
 use tokio::time;
 
-use crate::rpc::{AlgoType, MiningObj, MiningProposal};
+use crate::rpc::{MiningObj, MiningProposal};
 
 use super::MiningContext;
 use super::P3dParams;
@@ -79,16 +78,11 @@ pub(crate) fn worker(ctx: &MiningContext) {
 
         let MiningParams {
             pre_hash,
-            parent_hash,
+            rot,
             win_difficulty,
             pow_difficulty,
             ..
         } = mining_params;
-        let rot_hash = match &algo {
-            AlgoType::Grid2dV3_1 | AlgoType::Grid2dV3a => pre_hash,
-            _ => parent_hash,
-        };
-        let rot = rot_hash.encode()[0..4].try_into().ok();
 
         let mining_obj: MiningObj = MiningObj {
             obj_id: 1,
@@ -100,7 +94,7 @@ pub(crate) fn worker(ctx: &MiningContext) {
             algo.as_p3d_algo(),
             grid as i16,
             sect as i16,
-            rot,
+            Some(rot),
         );
 
         let (first_hash, obj_hash, poscan_hash) = match res_hashes {
