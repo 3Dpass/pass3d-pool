@@ -85,7 +85,7 @@ pub(crate) fn worker(ctx: &MiningContext) {
             ..
         } = mining_params;
         let rot_hash = match &algo {
-            AlgoType::Grid2dV3_1 => pre_hash,
+            AlgoType::Grid2dV3_1 | AlgoType::Grid2dV3a => pre_hash,
             _ => parent_hash,
         };
         let rot = rot_hash.encode()[0..4].try_into().ok();

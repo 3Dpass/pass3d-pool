@@ -23,8 +23,8 @@ enum SubCommand {
 #[derive(Debug, StructOpt)]
 struct RunOptions {
     /// 3d hash algorithm
-    #[structopt(default_value = "grid2d_v3.1", short, long)]
-    /// Mining algorithm. Supported algorithms: grid2d, grid2d_v2, grid2d_v3
+    #[structopt(default_value = "grid2d_v3a", short, long)]
+    /// Mining algorithm. Supported algorithms: grid2d, grid2d_v2, grid2d_v3, grid2d_v3a
     algo: String,
 
     #[structopt(short, long)]

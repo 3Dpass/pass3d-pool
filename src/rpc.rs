@@ -29,6 +29,7 @@ pub(crate) enum AlgoType {
     Grid2dV2,
     Grid2dV3,
     Grid2dV3_1,
+    Grid2dV3a,
 }
 
 impl AlgoType {
@@ -38,6 +39,7 @@ impl AlgoType {
             Self::Grid2dV2 => p3d::AlgoType::Grid2dV2,
             Self::Grid2dV3 |
             Self::Grid2dV3_1 => p3d::AlgoType::Grid2dV3,
+            Self::Grid2dV3a => p3d::AlgoType::Grid2dV3a,
         }
     }
 
@@ -47,6 +49,7 @@ impl AlgoType {
             Self::Grid2dV2 => "Grid2dV2",
             Self::Grid2dV3 => "Grid2dV3",
             Self::Grid2dV3_1 => "Grid2dV3.1",
+            Self::Grid2dV3a => "Grid2dV3a",
         }
     }
 }
@@ -66,6 +69,7 @@ impl P3dParams {
             "grid2d_v2" => (AlgoType::Grid2dV2, 12),
             "grid2d_v3" => (AlgoType::Grid2dV3, 12),
             "grid2d_v3.1" => (AlgoType::Grid2dV3_1, 12),
+            "grid2d_v3a" => (AlgoType::Grid2dV3a, 12),
             _ => panic!("Unknown algorithm: {}", ver),
         };
 
