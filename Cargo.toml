@@ -27,4 +27,4 @@ genmesh = "0.6.2"
 cgmath = "0.18.0"
 ansi_term = "0.12.1"
 
-p3d = { version = "0.3.3", git = "https://github.com/3Dpass/p3d", tag = "v0.6.3" }
+p3d = { version="0.7.0", git="https://github.com/3Dpass/p3d", rev="b69e641f" }
