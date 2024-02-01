@@ -191,7 +191,7 @@ impl MiningContext {
 
                 let mut r: [u8;32] = rot_hash.encode()[0..32].try_into().unwrap();
                 if matches!(self.p3d_params.algo, AlgoType::Grid2dV3a) {
-                    for a in r[3..].iter() {
+                    for a in r[4..].iter() {
                         // exclude rotation less than 20
                         if *a > 20 {
                             r[3] = a.clone();
